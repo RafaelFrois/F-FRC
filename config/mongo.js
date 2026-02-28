@@ -1,11 +1,5 @@
 import mongoose from "mongoose";
 
-const MONGO_URI = process.env.MONGO_URI;
-
-if (!MONGO_URI) {
-  throw new Error("MONGO_URI não definida.");
-}
-
 const globalCache = globalThis;
 
 if (!globalCache.__mongooseCache) {
@@ -13,6 +7,11 @@ if (!globalCache.__mongooseCache) {
 }
 
 export default async function connectMongo() {
+  const MONGO_URI = process.env.MONGO_URI;
+  if (!MONGO_URI) {
+    throw new Error("MONGO_URI não definida.");
+  }
+
   const cache = globalCache.__mongooseCache;
 
   if (cache.conn) {
