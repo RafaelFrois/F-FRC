@@ -1,0 +1,65 @@
+import styled from 'styled-components'
+
+//Container principal da tela
+export const Container = styled.div `
+    display: flex; //coloca os filhos lado a lado
+    flex-direction: row-reverse; // inverte a ordem
+    height: 100vh; //altura total da tela
+    width: 100%; //largura total da tela
+`
+export const LeftSide = styled.div `
+    flex: 1; //ocupa metade da tela
+    height: 100vh;
+    background-image: url('/robotsRegister.webp');
+    background-size: 180% auto; //imagem cobre toda área
+    background-position: center;
+    background-repeat: no-repeat;
+`
+export const RightSide = styled.div`
+    flex: 1; //ocupa metade da tela
+    background: #0066B3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+`
+export const Card = styled.div`
+    background: white;
+    width: 380px;
+    padding: 32px; //espaçamento interno
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px; //espaço entre os elementos
+`
+export const Logo = styled.img`
+    width: 80px;
+    margin-bottom: 16px; //espaço abaixo do logo
+`
+export const Input = styled.input`
+    width: 100%; //ocupa toda a largura do card
+    padding: 12px; //espaçamento interno
+    border-radius: 8px; //bordas arredondadas
+    border: 1px solid #E21C23;
+    font-size: 14px;
+
+    //Estilo do PlaceHolder
+    &::placeholder{
+        font-weight: bold;
+        color: #ccc;
+    }
+`
+export const ForgotPassword = styled.span`
+    font-size: 12px;
+    color: #E21C23;
+    align-self: flex-start; //alinha a esquerda
+    cursor: pointer; //cursor de clique
+
+`
+//Agrupar dois botões
+export const ButtonGroup = styled.div`
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+`
