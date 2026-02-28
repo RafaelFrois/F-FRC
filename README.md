@@ -1,16 +1,93 @@
-# React + Vite
+# F-FRC (Vite + Vercel Serverless API)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Este projeto roda frontend em Vite e backend em Vercel Serverless Functions (pasta `api/`).
 
-Currently, two official plugins are available:
+## Estrutura final (backend serverless)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```text
+api/
+	_lib/
+		auth.js
+		http.js
+		userSeason.js
+	login.js
+	register.js
+	me.js
+	regionals.js
+	regionals/
+		week/
+			[week].js
+		[eventKey]/
+			teams.js
+config/
+	mongo.js
+src/DataBase/
+	models/
+	services/
+```
 
-## React Compiler
+## Endpoints
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- `POST /api/login`
+- `POST /api/register`
+- `GET /api/regionals?week=1`
+- `GET /api/regionals/week/:week`
+- `GET /api/regionals/:eventKey/teams`
+- `GET /api/me` (JWT via cookie)
+- `PUT /api/me` (JWT via cookie)
+- `POST /api/score/calculate/:event_key`
+- `GET /api/market-price/:season/:week/:teamNumber`
+- `GET /api/market-price/debug/:season/:week/:teamNumber`
 
-## Expanding the ESLint configuration
+## Conversão auth.routes.js → serverless
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- `routes/auth.routes.js` (login/register) foi separado em:
+	- `api/login.js`
+	- `api/register.js`
+
+Cada função exporta:
+
+```js
+export default async function handler(req, res) {}
+```
+
+## MongoDB Atlas com cache global (serverless)
+
+Arquivo: `config/mongo.js`
+
+- Usa `globalThis.__mongooseCache` para reaproveitar conexão.
+- Evita múltiplas conexões por invocação fria/quente.
+
+## Variáveis de ambiente (Vercel)
+
+No painel da Vercel (Project → Settings → Environment Variables), configure:
+
+- `MONGO_URI`
+- `JWT_SECRET`
+- `TBA_KEY`
+- `FRC_SEASON_YEAR`
+- `CORS_ORIGINS` (ex: `https://seu-frontend.vercel.app,http://localhost:5173`)
+
+Depois faça redeploy.
+
+## Exemplo de fetch no frontend
+
+```js
+export async function login(email, password) {
+	const response = await fetch("/api/login", {
+		method: "POST",
+		credentials: "include",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ email, password })
+	});
+
+	const data = await response.json();
+	if (!response.ok) throw new Error(data.message || "Erro ao logar");
+	return data;
+}
+```
+
+## Deploy
+
+- `vercel.json` já está configurado para runtime Node nas funções `api/**/*.js`.
+- O frontend continua sendo buildado pelo Vite normalmente.

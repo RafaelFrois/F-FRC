@@ -93,7 +93,7 @@ export const uploadProfilePhoto = async (id, file) => {
 
 export const getMe = async () => {
   try {
-    const response = await fetch(`http://localhost:3000/api/me`, { credentials: 'include' });
+    const response = await fetch(`/api/me`, { credentials: 'include' });
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || 'Erro ao buscar usuário atual');
     return data.user;
@@ -104,7 +104,7 @@ export const getMe = async () => {
 
 export const updateMe = async (payload) => {
   try {
-    const response = await fetch(`http://localhost:3000/api/me`, {
+    const response = await fetch(`/api/me`, {
       method: 'PUT',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -122,7 +122,7 @@ export const uploadProfilePhotoMe = async (file) => {
   try {
     const form = new FormData();
     form.append('profilePhoto', file);
-    const response = await fetch(`http://localhost:3000/api/me/photo`, {
+    const response = await fetch(`/api/me/photo`, {
       method: 'POST',
       credentials: 'include',
       body: form
