@@ -10,6 +10,15 @@ function parseTeamNumber(teamKey) {
   return Number.isFinite(number) ? number : null;
 }
 
+function isCronAuthorized(req) {
+  const cronSecret = String(process.env.CRON_SECRET || "").trim();
+  if (!cronSecret) return false;
+
+  const authHeader = String(req.headers?.authorization || "").trim();
+  const expected = `Bearer ${cronSecret}`;
+  return authHeader === expected;
+}
+
 export default async function handler(req, res) {
   setCors(req, res);
   if (handleOptions(req, res)) return;
@@ -21,8 +30,16 @@ export default async function handler(req, res) {
     const seasonYear = Number(process.env.FRC_SEASON_YEAR) || new Date().getFullYear();
     const weekParam = Number(req.query.week);
     const targetWeek = Number.isInteger(weekParam) && weekParam >= 1 ? weekParam : getCurrentWeek(seasonYear);
+    const refreshRequested = ["1", "true", "yes"].includes(String(req.query.refresh || "").toLowerCase());
 
-    await ensureWeekScoresFresh(seasonYear, targetWeek);
+    if (refreshRequested && !isCronAuthorized(req)) {
+      return res.status(401).json({ message: "Não autorizado para refresh forçado" });
+    }
+
+    const refreshSummary = await ensureWeekScoresFresh(seasonYear, targetWeek, {
+      force: refreshRequested,
+      minIntervalMs: refreshRequested ? 0 : undefined
+    });
 
     const weekEvents = await getWeekEvents(seasonYear, targetWeek);
 
@@ -95,6 +112,8 @@ export default async function handler(req, res) {
     return res.status(200).json({
       week: targetWeek,
       seasonYear,
+      refreshed: refreshRequested,
+      refreshSummary: refreshRequested ? refreshSummary : undefined,
       teams: top
     });
   } catch (error) {
