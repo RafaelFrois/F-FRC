@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { getMe } from "../../services/api";
+import AppHeader from "../../components/AppHeader";
 import "../../styles/Regional-Teams.css";
 
 function ChooseAlliance() {
@@ -223,10 +224,12 @@ function ChooseAlliance() {
 
   return (
     <>
-      <div className="header" style={{ cursor: "pointer" }} onClick={handleHeaderClick}>
-        <span>FANTASY - FRC</span>
-        <span>ESCOLHA SUA ALIANÇA</span>
-      </div>
+      <AppHeader
+        title="FANTASY - FRC"
+        onTitleClick={handleHeaderClick}
+        rightText="ESCOLHA SUA ALIANÇA"
+        maxWidth={1400}
+      />
 
       <div className="container">
         

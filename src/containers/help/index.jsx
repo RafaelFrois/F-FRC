@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { Link } from 'react-router-dom';
+import AppHeader from '../../components/AppHeader';
 
 const FullPage = styled.div`
   background: #ffffff;
@@ -9,20 +9,6 @@ const FullPage = styled.div`
   color: #222;
 `;
 
-const HeaderBar = styled.header`
-  width: 100%;
-  background: linear-gradient(90deg,#0b66c3,#0a5bb0);
-  color: white;
-`;
-
-const HeaderInner = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 14px 24px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-`;
 
 const Container = styled.div`
   max-width: 1100px;
@@ -69,31 +55,16 @@ const List = styled.ul`
   color:#333;
 `;
 
-const BackLink = styled(Link)`
-  color: #fff;
-  text-decoration: none;
-  font-weight: 600;
-`;
-
-const HeaderTitle = styled(BackLink)`
-  margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-`;
-
 export default function HelpPage(){
   return (
     <FullPage>
-      <HeaderBar>
-        <HeaderInner>
-          <div>
-            <HeaderTitle to="/dashboard">FANTASY - FRC</HeaderTitle>
-          </div>
-          <div>
-            <BackLink to="/dashboard">Voltar</BackLink>
-          </div>
-        </HeaderInner>
-      </HeaderBar>
+      <AppHeader
+        title="FANTASY - FRC"
+        titleTo="/dashboard"
+        rightText="Voltar"
+        rightTo="/dashboard"
+        maxWidth={1200}
+      />
 
       <Container>
         <Panel>

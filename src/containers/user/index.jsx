@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { getMe, updateMe, uploadProfilePhotoMe } from '../../services/api';
-import { Link } from 'react-router-dom';
+import AppHeader from '../../components/AppHeader';
 
 const FullPage = styled.div`
   background: #ffffff;
@@ -10,20 +10,6 @@ const FullPage = styled.div`
   color: #222;
 `;
 
-const HeaderBar = styled.header`
-  width: 100%;
-  background: linear-gradient(90deg,#0b66c3,#0a5bb0);
-  color: white;
-`;
-
-const HeaderInner = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 14px 24px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-`;
 
 const Container = styled.div`
   max-width: 900px;
@@ -101,13 +87,6 @@ const Input = styled.input`
   padding:8px 10px;
   border-radius:8px;
   border:1px solid #ddd;
-`;
-
-const HeaderTitle = styled(Link)`
-  color: #fff;
-  text-decoration: none;
-  font-weight: 700;
-  font-size:18px;
 `;
 
 export default function UserProfile(){
@@ -188,12 +167,12 @@ export default function UserProfile(){
 
   return (
     <FullPage>
-      <HeaderBar>
-        <HeaderInner>
-          <HeaderTitle to="/dashboard">FANTASY - FRC</HeaderTitle>
-          <div style={{color:'#fff', fontWeight:700}}>SEU PERFIL</div>
-        </HeaderInner>
-      </HeaderBar>
+      <AppHeader
+        title="FANTASY - FRC"
+        titleTo="/dashboard"
+        rightText="SEU PERFIL"
+        maxWidth={1200}
+      />
 
       <Container>
         <Card>

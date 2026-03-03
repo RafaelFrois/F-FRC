@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { AllianceCard } from '../../components/AllianceCards';
 import { EmptySelection } from '../../components/EmptySelection';
 import { PatrimonyCard } from '../../components/PatrimonyCard';
+import AppHeader from '../../components/AppHeader';
 import { getMe } from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 // omitted MostChosen/TopScoring for first version
@@ -20,37 +21,10 @@ const Container = styled.div`
   padding: 24px;
 `;
 
-const HeaderBar = styled.header`
-  width: 100%;
-  background: linear-gradient(90deg,#0b66c3,#0a5bb0);
-  color: white;
-`;
-
-const HeaderInner = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 14px 24px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-`;
-
-const MainTitle = styled.h1`
-  font-size: 28px;
-  margin: 0 0 6px 0;
-  color: #222;
-`;
-
 const Subtitle = styled.h2`
   font-size: 16px;
   margin: 0;
   color: #666;
-`;
-
-const WeekTitle = styled.h3`
-  font-size: 14px;
-  margin: 8px 0 0 0;
-  color: #888;
 `;
 
 const MainContent = styled.div`
@@ -210,17 +184,12 @@ export default function Dashboard() {
 
   return (
     <FullPage>
-      <HeaderBar>
-        <HeaderInner>
-          <div>
-            <MainTitle style={{color:'#fff'}}>FANTASY - FRC</MainTitle>
-            <WeekTitle style={{color:'rgba(255,255,255,0.9)'}}>WEEK 1 – 2026 REBUILT</WeekTitle>
-          </div>
-          <div>
-            <Subtitle style={{color:'rgba(255,255,255,0.95)'}}>PÁGINA INICIAL</Subtitle>
-          </div>
-        </HeaderInner>
-      </HeaderBar>
+      <AppHeader
+        title="FANTASY - FRC"
+        subtitle="WEEK 1 – 2026 REBUILT"
+        rightText="PÁGINA INICIAL"
+        maxWidth={1200}
+      />
 
       <Container>
         <MainContent>

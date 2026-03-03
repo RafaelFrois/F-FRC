@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getMe } from "../../services/api";
+import AppHeader from "../../components/AppHeader";
 import "../../styles/Regional-Teams.css";
 
 function ChooseRegional() {
@@ -193,10 +194,12 @@ function ChooseRegional() {
 
   return (
     <>
-      <div className="header" style={{ cursor: "pointer" }} onClick={handleHeaderClick}>
-        <span>FANTASY - FRC</span>
-        <span>ESCOLHA DE ALIANÇA</span>
-      </div>
+      <AppHeader
+        title="FANTASY - FRC"
+        onTitleClick={handleHeaderClick}
+        rightText="ESCOLHA DE ALIANÇA"
+        maxWidth={1400}
+      />
 
       <div className="title-week">
         WEEK {currentWeek} – 2026 REBUILT
