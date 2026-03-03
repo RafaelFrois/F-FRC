@@ -23,6 +23,8 @@ export default async function handler(req, res) {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
+    const diagnosis = error?.diagnosis || null;
+
     return res.status(500).json({
       ok: false,
       service: "api",
@@ -32,6 +34,7 @@ export default async function handler(req, res) {
       },
       env,
       message: "Falha ao conectar no banco de dados",
+      diagnosis,
       details: process.env.NODE_ENV === "production" ? undefined : error.message,
       timestamp: new Date().toISOString()
     });

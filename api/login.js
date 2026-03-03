@@ -53,6 +53,14 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: "JSON inválido no corpo da requisição" });
     }
 
+    if (error?.diagnosis) {
+      return res.status(error.diagnosis.httpStatus || 500).json({
+        message: error.diagnosis.message,
+        code: error.diagnosis.code,
+        suggestion: error.diagnosis.suggestion
+      });
+    }
+
     const rawMessage = String(error?.message || "");
     const normalizedMessage = rawMessage.toLowerCase();
 
