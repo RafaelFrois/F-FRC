@@ -52,6 +52,30 @@ export default async function handler(req, res) {
     if (error instanceof SyntaxError) {
       return res.status(400).json({ message: "JSON inválido no corpo da requisição" });
     }
-    return res.status(500).json({ error: error.message });
+
+    const rawMessage = String(error?.message || "");
+    const normalizedMessage = rawMessage.toLowerCase();
+
+    if (normalizedMessage.includes("mongo_uri não definida") || normalizedMessage.includes("mongo_uri")) {
+      return res.status(500).json({
+        message: "Configuração do servidor incompleta: variável MONGO_URI não definida na Vercel."
+      });
+    }
+
+    if (
+      normalizedMessage.includes("ecconnrefused") ||
+      normalizedMessage.includes("etimedout") ||
+      normalizedMessage.includes("server selection") ||
+      normalizedMessage.includes("querysrv")
+    ) {
+      return res.status(503).json({
+        message: "Não foi possível conectar ao banco de dados no momento."
+      });
+    }
+
+    return res.status(500).json({
+      message: "Erro interno ao processar login.",
+      details: process.env.NODE_ENV === "production" ? undefined : rawMessage
+    });
   }
 }
