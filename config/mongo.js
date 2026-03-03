@@ -20,7 +20,10 @@ export default async function connectMongo() {
 
   if (!cache.promise) {
     cache.promise = mongoose.connect(MONGO_URI, {
-      bufferCommands: false
+      bufferCommands: false,
+      serverSelectionTimeoutMS: Number(process.env.MONGO_SERVER_SELECTION_TIMEOUT_MS || 8000),
+      connectTimeoutMS: Number(process.env.MONGO_CONNECT_TIMEOUT_MS || 8000),
+      socketTimeoutMS: Number(process.env.MONGO_SOCKET_TIMEOUT_MS || 12000)
     });
   }
 

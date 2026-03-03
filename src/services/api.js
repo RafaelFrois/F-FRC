@@ -3,10 +3,53 @@ const API_BASE_URL = "";
 import axios from 'axios';
 export const api = axios.create({ baseURL: API_BASE_URL, withCredentials: true });
 
+const REQUEST_TIMEOUT_MS = 12000;
+
+async function fetchWithTimeout(input, init = {}, timeoutMs = REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function parseResponseSafe(response) {
+  const raw = await response.text();
+  if (!raw) return {};
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    if (response.ok) {
+      throw new Error("Resposta inválida do servidor.");
+    }
+
+    throw new Error(`Erro ${response.status}: resposta inválida do servidor.`);
+  }
+}
+
+function normalizeApiError(error, fallbackMessage) {
+  if (error?.name === "AbortError") {
+    return new Error("Tempo limite excedido. Verifique a conexão e tente novamente.");
+  }
+
+  if (error instanceof Error) {
+    return error;
+  }
+
+  return new Error(fallbackMessage);
+}
+
 
 export const registerUser = async (userData) => {
   try {
-    const response = await fetch(`/api/register`, {
+    const response = await fetchWithTimeout(`/api/register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -14,7 +57,7 @@ export const registerUser = async (userData) => {
       body: JSON.stringify(userData),
     });
 
-    const data = await response.json();
+    const data = await parseResponseSafe(response);
 
     if (!response.ok) {
       throw new Error(data.message || `Erro ${response.status}: ${response.statusText}`);
@@ -22,13 +65,13 @@ export const registerUser = async (userData) => {
 
     return data;
   } catch (error) {
-    throw error;
+    throw normalizeApiError(error, "Erro ao cadastrar usuário");
   }
 };
 
 export const loginUser = async (email, password) => {
   try {
-    const response = await fetch(`/api/login`, {
+    const response = await fetchWithTimeout(`/api/login`, {
       method: "POST",
       credentials: 'include',
       headers: {
@@ -37,7 +80,7 @@ export const loginUser = async (email, password) => {
       body: JSON.stringify({ email, password }),
     });
 
-    const data = await response.json();
+    const data = await parseResponseSafe(response);
 
     if (!response.ok) {
       throw new Error(data.message || "Erro ao fazer login");
@@ -45,7 +88,7 @@ export const loginUser = async (email, password) => {
 
     return data;
   } catch (error) {
-    throw error;
+    throw normalizeApiError(error, "Erro ao fazer login");
   }
 };
 
