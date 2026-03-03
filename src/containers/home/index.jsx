@@ -143,6 +143,12 @@ const TopWeekTitle = styled.h3`
   }
 `;
 
+const TopWeekStatus = styled.div`
+  margin: -6px 0 12px;
+  font-size: 13px;
+  color: #6b6b6b;
+`;
+
 const TopWeekGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -220,6 +226,7 @@ export default function Dashboard() {
 
   const [user, setUser] = useState(null);
   const [topWeekTeams, setTopWeekTeams] = useState([]);
+  const [isTopWeekLoading, setIsTopWeekLoading] = useState(true);
 
   function calculateCurrentWeek() {
     const seasonYear = new Date().getFullYear();
@@ -257,6 +264,8 @@ export default function Dashboard() {
     let mounted = true;
 
     (async () => {
+      if (mounted) setIsTopWeekLoading(true);
+
       try {
         const week = calculateCurrentWeek();
         const response = await fetch(`/api/score/top-week?week=${week}`);
@@ -271,6 +280,10 @@ export default function Dashboard() {
       } catch (error) {
         if (mounted) {
           setTopWeekTeams([]);
+        }
+      } finally {
+        if (mounted) {
+          setIsTopWeekLoading(false);
         }
       }
     })();
@@ -379,17 +392,20 @@ export default function Dashboard() {
 
           <TopWeekPanel>
             <TopWeekTitle>EQUIPES QUE MAIS PONTUARAM</TopWeekTitle>
+            {isTopWeekLoading && (
+              <TopWeekStatus>Calculando pontuação da week...</TopWeekStatus>
+            )}
             <TopWeekGrid>
               {[0, 1, 2].map((index) => {
                 const team = topWeekTeams[index];
 
                 return (
                   <TeamTopCard key={team?.key || `placeholder-${index}`}>
-                    <TeamTopName>{team?.teamName || 'NOME DA EQUIPE'}</TeamTopName>
+                    <TeamTopName>{team?.teamName || (isTopWeekLoading ? 'CALCULANDO...' : 'NOME DA EQUIPE')}</TeamTopName>
                     <TeamTopLogo src="/Logo-Principal-NoBG.png" alt="Team logo" />
                     <TeamTopNumber>{team ? `#${team.teamNumber}` : '---'}</TeamTopNumber>
-                    <TeamTopPoints>{team ? Number(team.points).toFixed(2) : '---'}</TeamTopPoints>
-                    <TeamTopEvent>{team?.eventName || 'Evento indisponível'}</TeamTopEvent>
+                    <TeamTopPoints>{team ? Number(team.points).toFixed(2) : (isTopWeekLoading ? '...' : '---')}</TeamTopPoints>
+                    <TeamTopEvent>{team?.eventName || (isTopWeekLoading ? 'Buscando eventos em andamento...' : 'Evento indisponível')}</TeamTopEvent>
                   </TeamTopCard>
                 );
               })}
