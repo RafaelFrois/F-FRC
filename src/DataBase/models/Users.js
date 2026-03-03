@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema({
   rookieYear: { type: Number },
   profilePhoto: { type: String },
 
-  patrimonio: { type: Number, default: 800 },
+  patrimonio: { type: Number, default: 400 },
   patrimonioSeason: { type: Number, default: () => new Date().getFullYear() },
   totalPointsSeason: { type: Number, default: 0 },
 

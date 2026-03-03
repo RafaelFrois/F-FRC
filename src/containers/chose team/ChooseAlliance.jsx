@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { getMe } from "../../services/api";
 import "../../styles/Regional-Teams.css";
 
 function ChooseAlliance() {
@@ -16,6 +17,38 @@ function ChooseAlliance() {
   const [filteredTeams, setFilteredTeams] = useState([]);
   const [isLocked, setIsLocked] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [userPatrimony, setUserPatrimony] = useState(0);
+
+  const editingCredit = (isEditing && Array.isArray(currentAlliance))
+    ? currentAlliance.reduce((sum, team) => sum + Number(team?.marketValue || 0), 0)
+    : 0;
+  const availablePatrimony = Number(userPatrimony || 0) + editingCredit;
+  const selectedCost = selected.reduce(
+    (sum, selectedTeam) => sum + Number(selectedTeam?.team?.price ?? selectedTeam?.team?.marketValue ?? 0),
+    0
+  );
+  const remainingPatrimony = Math.max(0, availablePatrimony - selectedCost);
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        const user = await getMe();
+        if (mounted) {
+          setUserPatrimony(Number(user?.patrimonio || 0));
+        }
+      } catch {
+        if (mounted) {
+          setUserPatrimony(0);
+        }
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -107,6 +140,17 @@ function ChooseAlliance() {
         return copy;
       }
       if (curr.length >= 3) return curr;
+
+      const currentCost = curr.reduce(
+        (sum, selectedTeam) => sum + Number(selectedTeam?.team?.price ?? selectedTeam?.team?.marketValue ?? 0),
+        0
+      );
+      const nextTeamCost = Number(team?.price ?? team?.marketValue ?? 0);
+      if (currentCost + nextTeamCost > availablePatrimony) {
+        alert("Patrimônio insuficiente para selecionar este time.");
+        return curr;
+      }
+
       setHasChanges(true);
       return [...curr, { team, isCaptain: false }];
     });
@@ -127,7 +171,8 @@ function ChooseAlliance() {
       const alliance = selected.map(s => ({
         teamNumber: s.team.team_number,
         nickname: s.team.nickname,
-        isCaptain: s.isCaptain
+        isCaptain: s.isCaptain,
+        marketValue: Number(s.team?.price ?? s.team?.marketValue ?? 0)
       }));
       
       const response = await fetch('/api/me/alliance', {
@@ -200,6 +245,9 @@ function ChooseAlliance() {
 
           <div className="card">
             <h3>SUA ALIANÇA</h3>
+            <p style={{ margin: "0 0 12px 0", color: "#666", fontSize: "13px" }}>
+              Patrimônio disponível: <strong>{remainingPatrimony.toFixed(2)} ◈</strong>
+            </p>
             
             {/* Preview em 3 slots como o figma */}
             <div style={{

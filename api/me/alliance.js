@@ -40,10 +40,16 @@ function sanitizeAlliance(rawAlliance) {
         teamNumber,
         nickname: String(entry?.nickname || "").trim() || `Team ${teamNumber}`,
         isCaptain: Boolean(entry?.isCaptain),
-        marketValue: Number(entry?.marketValue || 0)
+        marketValue: Math.max(0, Number(entry?.marketValue || entry?.price || 0))
       };
     })
     .filter(Boolean);
+}
+
+function calculateAllianceCost(alliance) {
+  return (Array.isArray(alliance) ? alliance : []).reduce((sum, entry) => {
+    return sum + Math.max(0, Number(entry?.marketValue || 0));
+  }, 0);
 }
 
 function calculateSeasonTotalPoints(regionals) {
@@ -122,9 +128,15 @@ export default async function handler(req, res) {
         return res.status(400).json({ message: "eventKey é obrigatório" });
       }
 
+      const removedRegional = (user.regionals || []).find(
+        (entry) => normalizeEventKey(entry?.eventKey) === normalizedEventKey
+      );
+      const removedCost = calculateAllianceCost(removedRegional?.alliance);
+
       user.regionals = (user.regionals || []).filter(
         (entry) => normalizeEventKey(entry?.eventKey) !== normalizedEventKey
       );
+      user.patrimonio = Math.max(0, Number(user.patrimonio || 0) + removedCost);
       user.totalPointsSeason = calculateSeasonTotalPoints(user.regionals);
 
       await user.save();
@@ -169,9 +181,21 @@ export default async function handler(req, res) {
     const existingIndex = (user.regionals || []).findIndex(
       (entry) => normalizeEventKey(entry?.eventKey) === normalizedEventKey
     );
+    const existingRegional = existingIndex !== -1 ? user.regionals[existingIndex] : null;
 
     if (existingIndex !== -1 && !isEditing) {
       return res.status(409).json({ message: "Você já escalou neste regional." });
+    }
+
+    const currentPatrimony = Math.max(0, Number(user.patrimonio || 0));
+    const existingAllianceCost = calculateAllianceCost(existingRegional?.alliance);
+    const incomingAllianceCost = calculateAllianceCost(sanitizedAlliance);
+    const availablePatrimony = existingRegional ? currentPatrimony + existingAllianceCost : currentPatrimony;
+
+    if (incomingAllianceCost > availablePatrimony) {
+      return res.status(400).json({
+        message: `Patrimônio insuficiente para essa aliança. Disponível: ${availablePatrimony.toFixed(2)} ◈, custo: ${incomingAllianceCost.toFixed(2)} ◈`
+      });
     }
 
     const seasonYear = event?.start_date ? new Date(event.start_date).getFullYear() : currentYear;
@@ -200,6 +224,8 @@ export default async function handler(req, res) {
     } else {
       user.regionals.push(regionalPayload);
     }
+
+    user.patrimonio = Math.max(0, availablePatrimony - incomingAllianceCost);
 
     user.totalPointsSeason = calculateSeasonTotalPoints(user.regionals);
     if (seasonResetApplied) {
