@@ -3,7 +3,7 @@ import {
   getTeamPriceForWeek
 } from "../../../../../src/DataBase/services/marketSnapshot.service.js";
 import { calculateTeamMarketPrice } from "../../../../../src/DataBase/services/pricing.service.js";
-import { methodNotAllowed, setCors, handleOptions } from "../../../../_lib/http.js";
+import { methodNotAllowed, setCors, handleOptions } from "../../../../../lib/server/http.js";
 
 export default async function handler(req, res) {
   setCors(req, res);

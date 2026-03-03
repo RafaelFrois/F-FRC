@@ -1,6 +1,6 @@
 import connectMongo from "../../../config/mongo.js";
 import { calculateEventScores } from "../../../src/DataBase/services/scoring.service.js";
-import { methodNotAllowed, setCors, handleOptions } from "../../_lib/http.js";
+import { methodNotAllowed, setCors, handleOptions } from "../../../lib/server/http.js";
 
 export default async function handler(req, res) {
   setCors(req, res);

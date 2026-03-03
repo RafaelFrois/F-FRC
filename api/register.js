@@ -1,8 +1,8 @@
 import bcrypt from "bcryptjs";
 import connectMongo from "../config/mongo.js";
 import User from "../src/DataBase/models/Users.js";
-import { methodNotAllowed, parseJsonBody, setCors, handleOptions } from "./_lib/http.js";
-import { STARTING_PATRIMONY } from "./_lib/userSeason.js";
+import { methodNotAllowed, parseJsonBody, setCors, handleOptions } from "../lib/server/http.js";
+import { STARTING_PATRIMONY } from "../lib/server/userSeason.js";
 
 export default async function handler(req, res) {
   setCors(req, res);

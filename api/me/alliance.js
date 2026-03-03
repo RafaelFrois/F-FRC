@@ -3,9 +3,9 @@ import User from "../../src/DataBase/models/Users.js";
 import Score from "../../src/DataBase/models/score.js";
 import { getEventsByYear } from "../../src/DataBase/services/tba.services.js";
 import { calculateEventScores } from "../../src/DataBase/services/scoring.service.js";
-import { getUserIdFromRequest } from "../_lib/auth.js";
-import { ensureUserSeasonState } from "../_lib/userSeason.js";
-import { methodNotAllowed, parseJsonBody, setCors, handleOptions } from "../_lib/http.js";
+import { getUserIdFromRequest } from "../../lib/server/auth.js";
+import { ensureUserSeasonState } from "../../lib/server/userSeason.js";
+import { methodNotAllowed, parseJsonBody, setCors, handleOptions } from "../../lib/server/http.js";
 
 function normalizeEventKey(eventKey) {
   return String(eventKey || "").trim().toLowerCase();

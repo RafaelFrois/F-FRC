@@ -1,13 +1,13 @@
 import connectMongo from "../../config/mongo.js";
 import User from "../../src/DataBase/models/Users.js";
-import { getUserIdFromRequest } from "../_lib/auth.js";
+import { getUserIdFromRequest } from "../../lib/server/auth.js";
 import {
   methodNotAllowed,
   parseJsonBody,
   parseMultipartFormData,
   setCors,
   handleOptions
-} from "../_lib/http.js";
+} from "../../lib/server/http.js";
 
 const MAX_UPLOAD_BYTES = Number(process.env.PROFILE_PHOTO_MAX_BYTES || 2 * 1024 * 1024);
 

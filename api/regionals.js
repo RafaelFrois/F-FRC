@@ -1,6 +1,6 @@
 import connectMongo from "../config/mongo.js";
 import { getEventsByYear } from "../src/DataBase/services/tba.services.js";
-import { methodNotAllowed, setCors, handleOptions } from "./_lib/http.js";
+import { methodNotAllowed, setCors, handleOptions } from "../lib/server/http.js";
 
 function getWeekNumberFromDate(dateInput, seasonYear) {
   const week1Start = new Date(seasonYear, 2, 1);
