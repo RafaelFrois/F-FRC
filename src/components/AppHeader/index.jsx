@@ -15,6 +15,12 @@ const HeaderInner = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+
+  @media (max-width: 768px) {
+    padding: 12px 16px;
+    gap: 10px;
+    align-items: flex-start;
+  }
 `;
 
 const LeftGroup = styled.div`
@@ -29,6 +35,10 @@ const TitleLink = styled(Link)`
   font-weight: 700;
   font-size: 20px;
   letter-spacing: 0.5px;
+
+  @media (max-width: 768px) {
+    font-size: 18px;
+  }
 `;
 
 const TitleButton = styled.button`
@@ -42,18 +52,31 @@ const TitleButton = styled.button`
   font-size: 20px;
   letter-spacing: 0.5px;
   cursor: pointer;
+
+  @media (max-width: 768px) {
+    font-size: 18px;
+  }
 `;
 
 const Subtitle = styled.span`
   color: rgba(255, 255, 255, 0.9);
   font-size: 13px;
   font-weight: 600;
+
+  @media (max-width: 768px) {
+    font-size: 12px;
+  }
 `;
 
 const RightText = styled.span`
   color: rgba(255, 255, 255, 0.95);
   font-size: 15px;
   font-weight: 700;
+  text-align: right;
+
+  @media (max-width: 768px) {
+    font-size: 13px;
+  }
 `;
 
 const RightLink = styled(Link)`
@@ -61,6 +84,11 @@ const RightLink = styled(Link)`
   text-decoration: none;
   font-size: 15px;
   font-weight: 700;
+  text-align: right;
+
+  @media (max-width: 768px) {
+    font-size: 13px;
+  }
 `;
 
 export default function AppHeader({

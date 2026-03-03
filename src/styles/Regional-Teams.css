@@ -252,3 +252,64 @@ body {
   background-color: #ffe0e0;
   border-radius: 4px;
 }
+
+@media (max-width: 1024px) {
+  .container {
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .card {
+    width: 100%;
+    padding: 16px;
+  }
+
+  .list {
+    max-height: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .title-week {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+
+  .event-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .event-date {
+    margin-right: 0;
+  }
+
+  .button-green,
+  .button-red {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .card {
+    padding: 12px;
+    border-radius: 6px;
+  }
+
+  .card h3 {
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+
+  .card input {
+    font-size: 13px;
+    padding: 9px;
+  }
+}

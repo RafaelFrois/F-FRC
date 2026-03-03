@@ -1,5 +1,6 @@
 import { Container, LeftSide, RightSide, Card, Logo, Input, ForgotPassword, ButtonGroup } from './styles'
 import Button from '../../components/Button'
+import AppHeader from '../../components/AppHeader'
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { loginUser } from '../../services/api'
@@ -48,11 +49,19 @@ export default function Login(){
 
     //Return define o que será renderizado na tela
     return(
-        <Container>
-            <LeftSide />
+        <>
+            <AppHeader
+                title="FANTASY - FRC"
+                titleTo="/"
+                rightText="LOGIN"
+                maxWidth={1200}
+            />
 
-            <RightSide>
-                <Card>
+            <Container>
+                <LeftSide />
+
+                <RightSide>
+                    <Card>
                     <Logo src="/Logo-Principal-NoBG.png" alt="F-FRC Logo"/>
 
                     {/* Input de Email */}
@@ -111,9 +120,10 @@ export default function Login(){
                         </Button>
 
                     </ButtonGroup>
-                </Card>
-            </RightSide>
-        </Container>
+                    </Card>
+                </RightSide>
+            </Container>
+        </>
     )
 }
 

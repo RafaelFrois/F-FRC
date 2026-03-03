@@ -15,6 +15,11 @@ const Container = styled.div`
   max-width: 900px;
   margin: 24px auto;
   padding: 0 24px 40px;
+
+  @media (max-width: 768px) {
+    margin: 16px auto;
+    padding: 0 12px 24px;
+  }
 `;
 
 const Card = styled.div`
@@ -26,6 +31,10 @@ const Card = styled.div`
   display:flex;
   flex-direction:column;
   align-items:center;
+
+  @media (max-width: 768px) {
+    padding: 18px 14px;
+  }
 `;
 
 const Avatar = styled.div`
@@ -54,6 +63,11 @@ const Row = styled.div`
   gap:16px;
   width:100%;
   margin:8px 0;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    gap: 10px;
+  }
 `;
 
 const Col = styled.div`

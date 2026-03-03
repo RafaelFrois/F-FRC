@@ -19,6 +19,10 @@ const Container = styled.div`
   max-width: 1200px;
   margin: 0 auto;
   padding: 24px;
+
+  @media (max-width: 768px) {
+    padding: 14px 10px;
+  }
 `;
 
 const Subtitle = styled.h2`
@@ -56,6 +60,10 @@ const Panel = styled.div`
   padding:18px;
   color:#222;
   box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+
+  @media (max-width: 768px) {
+    padding: 12px;
+  }
 `;
 
 const Grid2 = styled.div`
@@ -63,6 +71,10 @@ const Grid2 = styled.div`
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
   gap:12px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const SidebarAvatar = styled.div`

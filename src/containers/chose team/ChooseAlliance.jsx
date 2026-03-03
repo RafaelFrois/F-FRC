@@ -19,6 +19,7 @@ function ChooseAlliance() {
   const [isLocked, setIsLocked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userPatrimony, setUserPatrimony] = useState(0);
+  const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth <= 1024 : false);
 
   const editingCredit = (isEditing && Array.isArray(currentAlliance))
     ? currentAlliance.reduce((sum, team) => sum + Number(team?.marketValue || 0), 0)
@@ -49,6 +50,16 @@ function ChooseAlliance() {
     return () => {
       mounted = false;
     };
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 1024);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
@@ -228,13 +239,13 @@ function ChooseAlliance() {
         title="FANTASY - FRC"
         onTitleClick={handleHeaderClick}
         rightText="ESCOLHA SUA ALIANÇA"
-        maxWidth={1400}
+        maxWidth={1200}
       />
 
       <div className="container">
         
         {/* LEFT COLUMN: Pesquisar + Sua Aliança */}
-        <div style={{ width: "40%", display: "flex", flexDirection: "column", gap: "20px" }}>
+        <div style={{ flex: "1 1 340px", minWidth: isMobile ? "100%" : "320px", display: "flex", flexDirection: "column", gap: "20px" }}>
           
           <div className="card">
             <h3>PESQUISAR / FILTRAR</h3>
@@ -255,6 +266,7 @@ function ChooseAlliance() {
             {/* Preview em 3 slots como o figma */}
             <div style={{
               display: "flex",
+              flexWrap: isMobile ? "wrap" : "nowrap",
               gap: "15px",
               marginBottom: "20px",
               justifyContent: "space-around"
@@ -267,7 +279,7 @@ function ChooseAlliance() {
                   <div
                     key={idx}
                     style={{
-                      flex: 1,
+                      flex: isMobile ? "1 1 100%" : 1,
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
@@ -410,7 +422,7 @@ function ChooseAlliance() {
         </div>
 
         {/* RIGHT COLUMN: Escolha sua Aliança */}
-        <div className="card list" style={{ width: "60%" }}>
+        <div className="card list" style={{ flex: "2 1 560px", minWidth: isMobile ? "100%" : "340px" }}>
           <h3>ESCOLHA SUA ALIANÇA</h3>
 
           {loading ? (
@@ -424,7 +436,7 @@ function ChooseAlliance() {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
               <div style={{
-                display: "flex",
+                display: isMobile ? "none" : "flex",
                 padding: "10px 0",
                 borderBottom: "2px solid #0b5fa5",
                 marginBottom: "10px",
@@ -460,7 +472,8 @@ function ChooseAlliance() {
                       transition: "background-color 0.2s, border-left 0.2s",
                       backgroundColor: isSelected ? "#e3f2fd" : "transparent",
                       borderLeft: isCaptain ? "4px solid #e53935" : "4px solid transparent",
-                      paddingLeft: "8px"
+                      paddingLeft: "8px",
+                      gap: isMobile ? "8px" : 0
                     }}
                     onMouseOver={(e) => {
                       if (!isSelected) {
@@ -498,10 +511,10 @@ function ChooseAlliance() {
                         {team.locality || "---"}
                       </div>
                     </div>
-                    <div style={{ width: "80px", textAlign: "center", fontWeight: "bold", color: "#555" }}>
+                    <div style={{ width: isMobile ? "70px" : "80px", textAlign: "center", fontWeight: "bold", color: "#555", fontSize: isMobile ? "12px" : "14px" }}>
                       #{team.team_number}
                     </div>
-                    <div style={{ width: "80px", textAlign: "right", fontWeight: "bold", color: "#0b5fa5" }}>
+                    <div style={{ width: isMobile ? "70px" : "80px", textAlign: "right", fontWeight: "bold", color: "#0b5fa5", fontSize: isMobile ? "12px" : "14px" }}>
                       {(team.price ?? 100)} ◈
                     </div>
                   </div>

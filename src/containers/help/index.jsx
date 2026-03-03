@@ -14,6 +14,11 @@ const Container = styled.div`
   max-width: 1100px;
   margin: 24px auto;
   padding: 0 24px 40px;
+
+  @media (max-width: 768px) {
+    margin: 16px auto;
+    padding: 0 12px 24px;
+  }
 `;
 
 const Panel = styled.article`
@@ -22,6 +27,10 @@ const Panel = styled.article`
   padding:28px 32px;
   color:#222;
   box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+
+  @media (max-width: 768px) {
+    padding: 18px 14px;
+  }
 `;
 
 const PageTitle = styled.h1`
@@ -116,7 +125,7 @@ export default function HelpPage(){
           <Paragraph>
             A pontuação é baseada em métricas reais dos eventos:
           </Paragraph>
-          <Paragraph><strong>Pontos Positivos</strong>: Event EPA Total, Auto EPA, Teleop EPA, Endgame EPA, Vitórias e Empates, Melhor desempenho do evento (bônus)</Paragraph>
+          <Paragraph><strong>Pontos Positivos</strong>: Auto EPA, Teleop EPA, Endgame EPA, Vitórias e Empates, Melhor desempenho do evento (bônus)</Paragraph>
           <Paragraph><strong>Pontos Negativos</strong>: Derrotas, Penalidades, Yellow Card, Red Card</Paragraph>
 
           <SubTitle>Patrimônio: o Motor do Jogo</SubTitle>
@@ -125,17 +134,17 @@ export default function HelpPage(){
           </Paragraph>
 
           <Paragraph>
-            Após cada Week: Variação = Pontuação Total × base_rate × MarketMultiplier. Se sua aliança pontua bem → seu patrimônio cresce. Se pontua mal → você perde poder de escalação.
+            Após cada Week: Variação = Pontuação Total × base_rate × MarketMultiplier. Se sua aliança pontua bem → seu patrimônio cresce. Se pontua mal → você perde poder de escalação. (Em Desenvolvimento)
           </Paragraph>
 
           <SubTitle>Mercado Inteligente (Risk & Reward)</SubTitle>
           <Paragraph>
-            O sistema aplica um multiplicador baseado no valor de mercado da equipe. Equipes baratas: se performam bem → valorização maior. Equipes caras: se vão mal → prejuízo pesado. Isso cria um mercado vivo.
+            O sistema aplica um multiplicador baseado no valor de mercado da equipe. Equipes baratas: se performam bem → valorização maior. Equipes caras: se vão mal → prejuízo pesado. Isso cria um mercado vivo. (Em Desenvolvimento)
           </Paragraph>
 
           <SubTitle>Longo Prazo: Efeito Bola de Neve</SubTitle>
           <Paragraph>
-            Boas decisões no início geram mais patrimônio, mais liberdade e mais potencial de pontuação. Más decisões reduzem orçamento e limitam opções.
+            Boas decisões no início geram mais patrimônio, mais liberdade e mais potencial de pontuação. Más decisões reduzem orçamento e limitam opções. (Em Desenvolvimento)
           </Paragraph>
 
           <SubTitle>O Objetivo Final</SubTitle>
@@ -144,7 +153,7 @@ export default function HelpPage(){
           </Paragraph>
 
           <Paragraph>
-            Você não está só acompanhando a FRC. Você está competindo dentro dela — de outra forma. Se quiser, posso deixar o texto mais institucional (formal), mais agressivo competitivo ou mais explicativo didático.
+            Você não está só acompanhando a FRC. Você está competindo dentro dela — de outra forma. Se quiser, posso deixar o texto mais institucional (formal), mais agressivo competitivo ou mais explicativo didático. (Em Desenvolvimento)
           </Paragraph>
 
         </Panel>

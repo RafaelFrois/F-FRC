@@ -198,7 +198,7 @@ function ChooseRegional() {
         title="FANTASY - FRC"
         onTitleClick={handleHeaderClick}
         rightText="ESCOLHA DE ALIANÇA"
-        maxWidth={1400}
+        maxWidth={1200}
       />
 
       <div className="title-week">
@@ -206,7 +206,7 @@ function ChooseRegional() {
       </div>
 
       <div className="container">
-        <div className="card" style={{ width: "30%" }}>
+        <div className="card" style={{ flex: "1 1 280px", minWidth: "260px" }}>
           <h3>PESQUISAR / FILTRAR</h3>
           <input
             placeholder="Nome"
@@ -216,7 +216,7 @@ function ChooseRegional() {
           <button className="button-red">FILTRAR</button>
         </div>
 
-        <div className="card list" style={{ width: "70%" }}>
+        <div className="card list" style={{ flex: "2 1 520px", minWidth: "280px" }}>
           <h3>ESCOLHA UM EVENTO</h3>
 
           {filteredRegionals.length === 0 ? (
@@ -245,7 +245,7 @@ function ChooseRegional() {
                     <button
                       className="button-green"
                       onClick={() => handleSelect(regional)}
-                      style={{ width: "auto", padding: "8px 16px", marginLeft: "10px" }}
+                      style={{ width: "auto", padding: "8px 16px", marginLeft: "10px", maxWidth: "180px" }}
                     >
                       ESCOLHER
                     </button>
