@@ -112,7 +112,7 @@ function ChooseRegional() {
   // Buscar regionais
   useEffect(() => {
     console.log("📡 Buscando regionais para week:", currentWeek);
-    fetch(`/api/regionals/week/${currentWeek}`)
+    fetch(`/api/regionals?week=${currentWeek}`)
       .then(res => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
