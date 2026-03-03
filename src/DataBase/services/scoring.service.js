@@ -81,17 +81,11 @@ async function getEventDataset(eventKey) {
     return cached.value;
   }
 
-  const [teams, matchStatsByTeam] = await Promise.all([
+  const [teams, matchStatsByTeam, eventEpaMap] = await Promise.all([
     getEventTeams(normalizedEventKey),
-    getEventMatchStats(normalizedEventKey)
+    getEventMatchStats(normalizedEventKey),
+    getEventEPAByTeam(normalizedEventKey)
   ]);
-
-  let eventEpaMap = new Map();
-  try {
-    eventEpaMap = await getEventEPAByTeam(normalizedEventKey);
-  } catch {
-    eventEpaMap = new Map();
-  }
 
   const value = {
     teams,

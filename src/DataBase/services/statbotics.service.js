@@ -28,13 +28,6 @@ function normalizeEPAValue(value, fallback = 0) {
   return parsed > 200 ? parsed / 10000 : parsed;
 }
 
-function normalizeScoringEPAValue(value, fallback = 0) {
-  const parsed = toNumber(value, fallback);
-  if (!Number.isFinite(parsed)) return fallback;
-  if (parsed > 300) return parsed / 100;
-  return parsed;
-}
-
 function normalizeString(value) {
   return String(value || "").trim().toLowerCase();
 }
@@ -61,15 +54,13 @@ function parseEventType(rawEvent = {}) {
 
 function extractTeamEventEPA(payload = {}) {
   const epa = payload.epa || payload.team_epa || {};
-  const totalPoints = epa.total_points || {};
-  const breakdown = epa.breakdown || {};
   const totalEPA = normalizeEPAValue(
-    payload.event_epa ?? payload.total_epa ?? breakdown.total_points ?? totalPoints.mean ?? epa.total ?? epa.norm ?? epa.end ?? payload.epa_total,
+    payload.total_epa ?? epa.total ?? epa.norm ?? epa.end ?? payload.epa_total,
     0
   );
-  const autoEPA = normalizeScoringEPAValue(payload.auto_epa ?? breakdown.auto_points ?? epa.auto ?? 0, 0);
-  const teleopEPA = normalizeScoringEPAValue(payload.teleop_epa ?? breakdown.teleop_points ?? epa.teleop ?? 0, 0);
-  const endgameEPA = normalizeScoringEPAValue(payload.endgame_epa ?? breakdown.endgame_points ?? breakdown.barge_points ?? epa.endgame ?? epa.end_game ?? 0, 0);
+  const autoEPA = normalizeEPAValue(payload.auto_epa ?? epa.auto ?? 0, 0);
+  const teleopEPA = normalizeEPAValue(payload.teleop_epa ?? epa.teleop ?? 0, 0);
+  const endgameEPA = normalizeEPAValue(payload.endgame_epa ?? epa.endgame ?? epa.end_game ?? 0, 0);
 
   return { totalEPA, autoEPA, teleopEPA, endgameEPA };
 }
@@ -408,17 +399,15 @@ function extractTeamKeyFromEventEntry(entry = {}) {
 function extractEventTeamEPA(entry = {}) {
   const epa = entry.epa || entry.team_epa || {};
   const norm = entry.norm_epa || {};
-  const totalPoints = epa.total_points || {};
-  const breakdown = epa.breakdown || {};
 
-  const event_epa = normalizeScoringEPAValue(
-    entry.event_epa ?? entry.total_epa ?? breakdown.total_points ?? totalPoints.mean ?? entry.team_epa ?? epa.total ?? epa.norm ?? epa.end ?? norm.current ?? norm.mean ?? 0,
+  const event_epa = normalizeEPAValue(
+    entry.event_epa ?? entry.total_epa ?? entry.team_epa ?? epa.total ?? epa.norm ?? epa.end ?? norm.current ?? norm.mean ?? 0,
     0
   );
 
-  const auto_epa = normalizeScoringEPAValue(entry.auto_epa ?? breakdown.auto_points ?? epa.auto ?? 0, 0);
-  const teleop_epa = normalizeScoringEPAValue(entry.teleop_epa ?? breakdown.teleop_points ?? epa.teleop ?? 0, 0);
-  const endgame_epa = normalizeScoringEPAValue(entry.endgame_epa ?? breakdown.endgame_points ?? breakdown.barge_points ?? epa.endgame ?? epa.end_game ?? 0, 0);
+  const auto_epa = normalizeEPAValue(entry.auto_epa ?? epa.auto ?? 0, 0);
+  const teleop_epa = normalizeEPAValue(entry.teleop_epa ?? epa.teleop ?? 0, 0);
+  const endgame_epa = normalizeEPAValue(entry.endgame_epa ?? epa.endgame ?? epa.end_game ?? 0, 0);
 
   return {
     event_epa,
