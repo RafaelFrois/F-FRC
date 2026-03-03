@@ -125,6 +125,66 @@ const HelpButton = styled.button`
   cursor:pointer;
 `;
 
+const TopWeekPanel = styled(Panel)`
+  margin-top: 8px;
+`;
+
+const TopWeekTitle = styled.h3`
+  margin: 0 0 10px 0;
+  font-size: 22px;
+  color: #4a4a4a;
+  font-weight: 500;
+
+  @media (max-width: 768px) {
+    font-size: 18px;
+  }
+`;
+
+const TopWeekGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const TeamTopCard = styled.div`
+  border: 1px solid #e6e6e6;
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+  background: #fff;
+`;
+
+const TeamTopName = styled.div`
+  font-size: 13px;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 4px;
+`;
+
+const TeamTopNumber = styled.div`
+  font-size: 12px;
+  color: #777;
+  margin-bottom: 10px;
+`;
+
+const TeamTopPoints = styled.div`
+  font-size: 22px;
+  font-weight: 800;
+  color: #19b64f;
+  line-height: 1;
+`;
+
+const TeamTopEvent = styled.div`
+  font-size: 12px;
+  color: #4d4d4d;
+  margin-top: 8px;
+  min-height: 30px;
+`;
+
 export default function Dashboard() {
   const [selectedAlliance] = useState({
     teams: [
@@ -138,6 +198,26 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   const [user, setUser] = useState(null);
+  const [topWeekTeams, setTopWeekTeams] = useState([]);
+
+  function calculateCurrentWeek() {
+    const seasonYear = new Date().getFullYear();
+    const today = new Date();
+    const week1Start = new Date(seasonYear, 2, 1);
+    const week1End = new Date(seasonYear, 2, 8);
+    const week1AvailableFrom = new Date(week1Start.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+    if (today >= week1AvailableFrom && today <= week1End) {
+      return 1;
+    }
+
+    if (today > week1End) {
+      const daysSinceWeek1Start = Math.floor((today - week1Start) / (1000 * 60 * 60 * 24));
+      return Math.max(1, Math.floor(daysSinceWeek1Start / 7) + 1);
+    }
+
+    return 1;
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -150,6 +230,33 @@ export default function Dashboard() {
       }
     })();
     return () => { mounted = false };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        const week = calculateCurrentWeek();
+        const response = await fetch(`/api/score/top-week?week=${week}`);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (mounted) {
+          setTopWeekTeams(Array.isArray(data?.teams) ? data.teams.slice(0, 3) : []);
+        }
+      } catch (error) {
+        if (mounted) {
+          setTopWeekTeams([]);
+        }
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const initials = user && user.username
@@ -215,7 +322,7 @@ export default function Dashboard() {
           </SidebarAvatar>
 
           <PatrimonyCard
-            value={`${Number(user?.patrimonio ?? 800).toFixed(2)} ◈`}
+            value={`${Number(user?.patrimonio ?? 300).toFixed(2)} ◈`}
             totalScore={Number(user?.totalPointsSeason ?? 0).toFixed(2)}
             onHelp={handleHelp}
           />
@@ -248,6 +355,24 @@ export default function Dashboard() {
               ))}
             </Grid2>
           </Panel>
+
+          <TopWeekPanel>
+            <TopWeekTitle>EQUIPES QUE MAIS PONTUARAM</TopWeekTitle>
+            <TopWeekGrid>
+              {[0, 1, 2].map((index) => {
+                const team = topWeekTeams[index];
+
+                return (
+                  <TeamTopCard key={team?.key || `placeholder-${index}`}>
+                    <TeamTopName>{team?.teamName || 'NOME DA EQUIPE'}</TeamTopName>
+                    <TeamTopNumber>{team ? `#${team.teamNumber}` : '---'}</TeamTopNumber>
+                    <TeamTopPoints>{team ? Number(team.points).toFixed(2) : '---'}</TeamTopPoints>
+                    <TeamTopEvent>{team?.eventName || 'Evento indisponível'}</TeamTopEvent>
+                  </TeamTopCard>
+                );
+              })}
+            </TopWeekGrid>
+          </TopWeekPanel>
         </CenterColumn>
         </MainContent>
       </Container>
