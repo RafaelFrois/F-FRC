@@ -11,6 +11,7 @@ function ChooseRegional() {
   const [searchTerm, setSearchTerm] = useState("");
   const [userRegionalKeys, setUserRegionalKeys] = useState([]);
   const navigate = useNavigate();
+  const seasonYear = new Date().getFullYear();
 
   // Calcular a weekde um evento baseado na sua data de início
   function calculateEventWeek(eventStartDate) {
@@ -25,12 +26,12 @@ function ChooseRegional() {
         eventDate = new Date(eventStartDate);
       }
       
-      const week1Start = new Date(2026, 2, 1); // 01/03/2026
+      const week1Start = new Date(seasonYear, 2, 1);
       
       console.log(`    Parse: "${eventStartDate}" -> ${eventDate.toLocaleDateString('pt-BR')}`);
       
       // Se a data do evento é antes de 08/03, é week 1
-      if (eventDate < new Date(2026, 2, 8)) {
+      if (eventDate < new Date(seasonYear, 2, 8)) {
         return 1;
       }
       
@@ -48,9 +49,9 @@ function ChooseRegional() {
   // Week 1: 01/03 - 08/03 (disponível a partir de 14/02 - 2 semanas antes)
   // Week 2: 08/03 - 15/03, etc
   function calculateCurrentWeek() {
-    const today = new Date(2026, 1, 25); // Hoje: 25/02/2026 para teste
-    const week1Start = new Date(2026, 2, 1); // 01/03/2026
-    const week1End = new Date(2026, 2, 8); // 08/03/2026
+    const today = new Date();
+    const week1Start = new Date(seasonYear, 2, 1);
+    const week1End = new Date(seasonYear, 2, 8);
     const week1AvailableFrom = new Date(week1Start.getTime() - 14 * 24 * 60 * 60 * 1000); // 2 semanas antes
     
     // Se estamos 2 semanas antes ou durante a week 1, retorna week 1
@@ -71,7 +72,7 @@ function ChooseRegional() {
 
   // Retorna o status do regional
   function getStatus(regional) {
-    const today = new Date(2026, 1, 25); // Usar a mesma data de teste
+    const today = new Date();
     const start = new Date(regional.start_date);
     const end = new Date(regional.end_date);
 
@@ -202,7 +203,7 @@ function ChooseRegional() {
       />
 
       <div className="title-week">
-        WEEK {currentWeek} – 2026 REBUILT
+        WEEK {currentWeek} – {seasonYear} REBUILT
       </div>
 
       <div className="container">
