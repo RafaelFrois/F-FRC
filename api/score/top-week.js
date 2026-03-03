@@ -1,39 +1,8 @@
 import connectMongo from "../../config/mongo.js";
 import Score from "../../src/DataBase/models/score.js";
-import { getEventsByYear, getTeamsByEvent } from "../../src/DataBase/services/tba.services.js";
-import { calculateEventScores } from "../../src/DataBase/services/scoring.service.js";
+import { getTeamsByEvent } from "../../src/DataBase/services/tba.services.js";
 import { methodNotAllowed, setCors, handleOptions } from "../../lib/server/http.js";
-
-function getWeekNumberFromDate(dateInput, seasonYear) {
-  const week1Start = new Date(seasonYear, 2, 1);
-  const eventDate = new Date(dateInput);
-  let eventWeek = 1;
-
-  if (eventDate >= new Date(seasonYear, 2, 8)) {
-    const daysSinceWeek1 = Math.floor((eventDate - week1Start) / (1000 * 60 * 60 * 24));
-    eventWeek = Math.floor(daysSinceWeek1 / 7) + 1;
-  }
-
-  return eventWeek;
-}
-
-function getCurrentWeek(seasonYear) {
-  const today = new Date();
-  const week1Start = new Date(seasonYear, 2, 1);
-  const week1End = new Date(seasonYear, 2, 8);
-  const week1AvailableFrom = new Date(week1Start.getTime() - 14 * 24 * 60 * 60 * 1000);
-
-  if (today >= week1AvailableFrom && today <= week1End) {
-    return 1;
-  }
-
-  if (today > week1End) {
-    const daysSinceWeek1Start = Math.floor((today - week1Start) / (1000 * 60 * 60 * 24));
-    return Math.max(1, Math.floor(daysSinceWeek1Start / 7) + 1);
-  }
-
-  return 1;
-}
+import { ensureWeekScoresFresh, getCurrentWeek, getWeekEvents } from "../../lib/server/scoringSync.js";
 
 function parseTeamNumber(teamKey) {
   const digits = String(teamKey || "").replace(/[^0-9]/g, "");
@@ -53,11 +22,9 @@ export default async function handler(req, res) {
     const weekParam = Number(req.query.week);
     const targetWeek = Number.isInteger(weekParam) && weekParam >= 1 ? weekParam : getCurrentWeek(seasonYear);
 
-    const events = await getEventsByYear(seasonYear);
-    const regionalEvents = events.filter((event) => event.event_type === 0 || event.event_type === 1);
-    const weekEvents = regionalEvents.filter(
-      (event) => getWeekNumberFromDate(event.start_date, seasonYear) === targetWeek
-    );
+    await ensureWeekScoresFresh(seasonYear, targetWeek);
+
+    const weekEvents = await getWeekEvents(seasonYear, targetWeek);
 
     const eventKeys = weekEvents.map((event) => String(event.key || "").trim().toLowerCase()).filter(Boolean);
     if (eventKeys.length === 0) {
@@ -70,7 +37,7 @@ export default async function handler(req, res) {
       .lean();
 
     if (scoreRows.length === 0) {
-      await Promise.allSettled(eventKeys.map((eventKey) => calculateEventScores(eventKey)));
+      await ensureWeekScoresFresh(seasonYear, targetWeek, { force: true, minIntervalMs: 0 });
 
       scoreRows = await Score.find({ event_key: { $in: eventKeys } })
         .sort({ totalPoints: -1, bonusPoints: -1, winPoints: -1, createdAt: -1 })

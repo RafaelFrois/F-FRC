@@ -3,6 +3,7 @@ import User from "../src/DataBase/models/Users.js";
 import { getUserIdFromRequest } from "../lib/server/auth.js";
 import { methodNotAllowed, parseJsonBody, setCors, handleOptions } from "../lib/server/http.js";
 import { ensureUserSeasonState } from "../lib/server/userSeason.js";
+import { refreshSingleUserScores } from "../lib/server/scoringSync.js";
 
 export default async function handler(req, res) {
   setCors(req, res);
@@ -21,7 +22,12 @@ export default async function handler(req, res) {
 
       const currentSeason = Number(process.env.FRC_SEASON_YEAR) || new Date().getFullYear();
       const seasonResetApplied = ensureUserSeasonState(user, currentSeason);
-      if (seasonResetApplied) {
+      const pointsUpdated = await refreshSingleUserScores(user);
+
+      if (seasonResetApplied || pointsUpdated) {
+        if (pointsUpdated) {
+          user.markModified("regionals");
+        }
         await user.save();
       }
 
