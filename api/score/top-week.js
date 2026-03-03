@@ -1,6 +1,7 @@
 import connectMongo from "../../config/mongo.js";
 import Score from "../../src/DataBase/models/score.js";
 import { getEventsByYear, getTeamsByEvent } from "../../src/DataBase/services/tba.services.js";
+import { calculateEventScores } from "../../src/DataBase/services/scoring.service.js";
 import { methodNotAllowed, setCors, handleOptions } from "../../lib/server/http.js";
 
 function getWeekNumberFromDate(dateInput, seasonYear) {
@@ -63,10 +64,19 @@ export default async function handler(req, res) {
       return res.status(200).json({ week: targetWeek, seasonYear, teams: [] });
     }
 
-    const scoreRows = await Score.find({ event_key: { $in: eventKeys } })
+    let scoreRows = await Score.find({ event_key: { $in: eventKeys } })
       .sort({ totalPoints: -1, bonusPoints: -1, winPoints: -1, createdAt: -1 })
       .limit(100)
       .lean();
+
+    if (scoreRows.length === 0) {
+      await Promise.allSettled(eventKeys.map((eventKey) => calculateEventScores(eventKey)));
+
+      scoreRows = await Score.find({ event_key: { $in: eventKeys } })
+        .sort({ totalPoints: -1, bonusPoints: -1, winPoints: -1, createdAt: -1 })
+        .limit(100)
+        .lean();
+    }
 
     const eventByKey = new Map(weekEvents.map((event) => [String(event.key || "").toLowerCase(), event]));
     const teamNameByEventAndNumber = new Map();
