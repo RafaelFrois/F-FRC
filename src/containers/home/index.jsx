@@ -127,16 +127,19 @@ const HelpButton = styled.button`
 
 const TopWeekPanel = styled(Panel)`
   margin-top: 8px;
+  border: 1px solid #e3e3e3;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 `;
 
 const TopWeekTitle = styled.h3`
-  margin: 0 0 10px 0;
-  font-size: 22px;
+  margin: 0 0 12px 0;
+  font-size: 28px;
   color: #4a4a4a;
-  font-weight: 500;
+  font-weight: 400;
+  letter-spacing: 0.3px;
 
   @media (max-width: 768px) {
-    font-size: 18px;
+    font-size: 22px;
   }
 `;
 
@@ -151,38 +154,56 @@ const TopWeekGrid = styled.div`
 `;
 
 const TeamTopCard = styled.div`
-  border: 1px solid #e6e6e6;
+  border: none;
   border-radius: 8px;
-  padding: 12px;
+  padding: 8px 12px 10px;
   text-align: center;
   background: #fff;
 `;
 
 const TeamTopName = styled.div`
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: #222;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+`;
+
+const TeamTopLogo = styled.img`
+  width: 84px;
+  height: 56px;
+  object-fit: contain;
+  opacity: 0.7;
+  margin: 0 auto 8px;
+
+  @media (max-width: 768px) {
+    width: 74px;
+    height: 50px;
+  }
 `;
 
 const TeamTopNumber = styled.div`
-  font-size: 12px;
+  font-size: 13px;
   color: #777;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 `;
 
 const TeamTopPoints = styled.div`
-  font-size: 22px;
+  font-size: 26px;
   font-weight: 800;
   color: #19b64f;
   line-height: 1;
+
+  @media (max-width: 768px) {
+    font-size: 22px;
+  }
 `;
 
 const TeamTopEvent = styled.div`
   font-size: 12px;
   color: #4d4d4d;
   margin-top: 8px;
-  min-height: 30px;
+  min-height: 32px;
 `;
 
 export default function Dashboard() {
@@ -365,6 +386,7 @@ export default function Dashboard() {
                 return (
                   <TeamTopCard key={team?.key || `placeholder-${index}`}>
                     <TeamTopName>{team?.teamName || 'NOME DA EQUIPE'}</TeamTopName>
+                    <TeamTopLogo src="/Logo-Principal-NoBG.png" alt="Team logo" />
                     <TeamTopNumber>{team ? `#${team.teamNumber}` : '---'}</TeamTopNumber>
                     <TeamTopPoints>{team ? Number(team.points).toFixed(2) : '---'}</TeamTopPoints>
                     <TeamTopEvent>{team?.eventName || 'Evento indisponível'}</TeamTopEvent>
