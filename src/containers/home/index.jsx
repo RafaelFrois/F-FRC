@@ -187,7 +187,7 @@ export default function Dashboard() {
     if (!confirmed) return;
 
     try {
-      const response = await fetch(`http://localhost:3000/api/me/alliance/${eventKey}`, {
+      const response = await fetch(`/api/me/alliance/${eventKey}`, {
         method: 'DELETE',
         credentials: 'include'
       });

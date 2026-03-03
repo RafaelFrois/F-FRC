@@ -27,7 +27,7 @@ function ChooseAlliance() {
       controller.abort();
     }, 45000);
 
-    fetch(`/api/regionals/${eventKey}/teams`, {
+    fetch(`/api/regionals/teams?eventKey=${encodeURIComponent(eventKey || "")}`, {
       credentials: 'include',
       signal: controller.signal
     })
@@ -130,7 +130,7 @@ function ChooseAlliance() {
         isCaptain: s.isCaptain
       }));
       
-      const response = await fetch('http://localhost:3000/api/me/alliance', {
+      const response = await fetch('/api/me/alliance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
