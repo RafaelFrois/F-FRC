@@ -164,6 +164,12 @@ const getTeamColor = (teamNumber) => {
   return colors[teamNumber % colors.length];
 };
 
+const getDisplayTeamName = (team) => {
+  const nickname = String(team?.nickname || team?.teamName || "").trim();
+  if (nickname) return nickname;
+  return "Nome da equipe";
+};
+
 export const AllianceCard = ({ 
   teams = [], 
   totalScore = 0, 
@@ -223,7 +229,7 @@ export const AllianceCard = ({
                 #{team.teamNumber} {team.isCaptain && '⭐'}
               </TeamNumber>
               {team.isCaptain && <CaptainBadge>CAPITÃO</CaptainBadge>}
-              {team.nickname && <TeamNickname>{team.nickname}</TeamNickname>}
+              <TeamNickname>{getDisplayTeamName(team)}</TeamNickname>
             </div>
           </Team>
         ))}

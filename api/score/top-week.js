@@ -20,6 +20,44 @@ function isCronAuthorized(req) {
   return authHeader === expected;
 }
 
+function isPlaceholderTeamName(name, teamNumber) {
+  const normalized = String(name || "").trim().toLowerCase();
+  if (!normalized) return true;
+  return normalized === `team ${Number(teamNumber)}`;
+}
+
+async function resolveWeekTeamNamesByNumber(weekEvents, teamNumbers) {
+  const wanted = new Set((Array.isArray(teamNumbers) ? teamNumbers : []).map(Number).filter(Number.isFinite));
+  const nameByNumber = new Map();
+
+  if (wanted.size === 0) return nameByNumber;
+
+  for (const event of Array.isArray(weekEvents) ? weekEvents : []) {
+    if (wanted.size === 0) break;
+
+    const eventKey = String(event?.key || "").trim().toLowerCase();
+    if (!eventKey) continue;
+
+    try {
+      const teams = await getTeamsByEvent(eventKey);
+      for (const team of teams) {
+        const number = Number(team?.team_number);
+        if (!wanted.has(number)) continue;
+
+        const nickname = String(team?.nickname || team?.name || "").trim();
+        if (!nickname) continue;
+
+        nameByNumber.set(number, nickname);
+        wanted.delete(number);
+      }
+    } catch {
+      // ignora erro do evento e segue nos próximos
+    }
+  }
+
+  return nameByNumber;
+}
+
 export default async function handler(req, res) {
   setCors(req, res);
   if (handleOptions(req, res)) return;
@@ -37,6 +75,8 @@ export default async function handler(req, res) {
     if (refreshRequested && !isCronAuthorized(req)) {
       return res.status(401).json({ message: "Não autorizado para refresh forçado" });
     }
+
+    const weekEvents = await getWeekEvents(seasonYear, targetWeek);
 
     if (metric === "chosen") {
       const rows = await User.aggregate([
@@ -78,6 +118,21 @@ export default async function handler(req, res) {
         selectionCount: Number(row.selectionCount || 0)
       }));
 
+      const missingNameNumbers = teams
+        .filter((entry) => isPlaceholderTeamName(entry.teamName, entry.teamNumber))
+        .map((entry) => entry.teamNumber);
+
+      if (missingNameNumbers.length > 0) {
+        const resolvedNameByNumber = await resolveWeekTeamNamesByNumber(weekEvents, missingNameNumbers);
+        for (const entry of teams) {
+          if (!isPlaceholderTeamName(entry.teamName, entry.teamNumber)) continue;
+          const resolved = resolvedNameByNumber.get(Number(entry.teamNumber));
+          if (resolved) {
+            entry.teamName = resolved;
+          }
+        }
+      }
+
       return res.status(200).json({
         week: targetWeek,
         seasonYear,
@@ -90,8 +145,6 @@ export default async function handler(req, res) {
       force: refreshRequested,
       minIntervalMs: refreshRequested ? 0 : undefined
     });
-
-    const weekEvents = await getWeekEvents(seasonYear, targetWeek);
 
     const eventKeys = weekEvents.map((event) => String(event.key || "").trim().toLowerCase()).filter(Boolean);
     if (eventKeys.length === 0) {
