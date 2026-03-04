@@ -282,10 +282,11 @@ const MostChosenInfo = styled.div`
 
 const MostChosenTeamName = styled(TeamTopName)`
   margin: 0 0 4px;
-  font-size: 14px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 13px;
+  line-height: 1.2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 `;
 
 const MostChosenMetaLabel = styled.div`
