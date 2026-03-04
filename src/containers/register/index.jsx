@@ -1,7 +1,6 @@
 import { Container, LeftSide, RightSide, Card, Logo, Input, ButtonGroup } from './styles'
 import {useState} from 'react'
 import Button from '../../components/Button'
-import AppHeader from '../../components/AppHeader'
 import { registerUser } from '../../services/api'
 import { useNavigate } from 'react-router-dom'
 
@@ -84,19 +83,11 @@ export default function Register(){
 
     //Return define o que será renderizado na tela
     return(
-        <>
-            <AppHeader
-                title="FANTASY - FRC"
-                titleTo="/"
-                rightText="CADASTRO"
-                maxWidth={1200}
-            />
+        <Container>
+            <LeftSide />
 
-            <Container>
-                <LeftSide />
-
-                <RightSide>
-                    <Card>
+            <RightSide>
+                <Card>
                     <Logo src="/Logo-Principal-NoBG.png" alt="F-FRC Logo"/>
 
                     {/* Input de Email */}
@@ -136,10 +127,9 @@ export default function Register(){
                         </Button>
 
                     </ButtonGroup>
-                    </Card>
-                </RightSide>
-            </Container>
-        </>
+                </Card>
+            </RightSide>
+        </Container>
     )
 }
 
