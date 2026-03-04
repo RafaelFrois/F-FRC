@@ -319,6 +319,35 @@ const MostChosenRank = styled.div`
   text-align: right;
 `;
 
+const RefreshButton = styled.button`
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: #e0e0e0;
+    color: #333;
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const TopWeekHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+`;
+
 export default function Dashboard() {
   const [selectedAlliance] = useState({
     teams: [
@@ -336,6 +365,7 @@ export default function Dashboard() {
   const [isTopWeekLoading, setIsTopWeekLoading] = useState(true);
   const [mostChosenTeams, setMostChosenTeams] = useState([]);
   const [isMostChosenLoading, setIsMostChosenLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   function calculateCurrentWeek() {
     const seasonYear = new Date().getFullYear();
@@ -450,6 +480,37 @@ export default function Dashboard() {
     ? user.username.split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase()
     : 'RF';
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      const week = calculateCurrentWeek();
+      const response = await fetch(`/api/score/refresh-week`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ week, force: true })
+      });
+
+      if (response.ok) {
+        // Recarrega os dados após refresh
+        const topResponse = await fetch(`/api/score/top-week?week=${week}`);
+        if (topResponse.ok) {
+          const topData = await topResponse.json();
+          setTopWeekTeams(Array.isArray(topData?.teams) ? topData.teams.slice(0, 3) : []);
+        }
+
+        const chosenResponse = await fetch(`/api/score/top-week?week=${week}&metric=chosen`);
+        if (chosenResponse.ok) {
+          const chosenData = await chosenResponse.json();
+          setMostChosenTeams(Array.isArray(chosenData?.teams) ? chosenData.teams.slice(0, 3) : []);
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao fazer refresh:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const handleChooseTeam = () => {
     // redirect to regional chooser
     navigate('/choose-regional');
@@ -547,7 +608,12 @@ export default function Dashboard() {
           </Panel>
 
           <TopWeekPanel>
-            <TopWeekTitle>EQUIPES QUE MAIS PONTUARAM</TopWeekTitle>
+            <TopWeekHeader>
+              <TopWeekTitle>EQUIPES QUE MAIS PONTUARAM</TopWeekTitle>
+              <RefreshButton onClick={handleRefresh} disabled={isRefreshing || isTopWeekLoading}>
+                {isRefreshing ? '⟳ ATUALIZANDO...' : '⟳ ATUALIZAR'}
+              </RefreshButton>
+            </TopWeekHeader>
             {isTopWeekLoading && (
               <TopWeekStatus>Calculando pontuação da week...</TopWeekStatus>
             )}

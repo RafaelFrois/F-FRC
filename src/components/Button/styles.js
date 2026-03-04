@@ -11,7 +11,7 @@ export const StyledButton = styled.button `
     //Define a cor baseada na variante
     background: ${props => 
         props.variant === 'secondary'
-        ? '#e6db00'
+        ? '#e60000'
         : '#e60000'
     };
 
