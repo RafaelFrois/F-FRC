@@ -184,6 +184,13 @@ export const AllianceCard = ({
   
   // Verificar se o evento começou
   const hasStarted = eventStartDate ? new Date() >= new Date(eventStartDate) : false;
+
+  // Sempre prioriza a soma dos 3 robôs quando os pontos individuais estão disponíveis.
+  const summedAllianceScore = Array.isArray(teams)
+    ? teams.reduce((sum, team) => sum + Number(team?.points || 0), 0)
+    : 0;
+  const hasTeamPoints = Array.isArray(teams) && teams.some((team) => team?.points !== undefined && team?.points !== null);
+  const displayScore = hasTeamPoints ? summedAllianceScore : Number(totalScore || 0);
   
   const handleEdit = () => {
     navigate(`/choose-alliance/${eventKey}`, {
@@ -201,7 +208,7 @@ export const AllianceCard = ({
   };
 
   const handleDetails = () => {
-    alert('Esse recurso ainda esta em desenvolvimento');
+    alert('Este recurso ainda está em desenvolvimento');
   };
   
   return (
@@ -238,8 +245,8 @@ export const AllianceCard = ({
       <ScoreRow>
         {hasStarted ? (
           <ScoreWrap>
-            <ScoreValue $score={totalScore}>{Number(totalScore).toFixed(2)}</ScoreValue>
             <DetailsButton onClick={handleDetails}>VER DETALHES</DetailsButton>
+            <ScoreValue $score={displayScore}>{Number(displayScore).toFixed(2)}</ScoreValue>
           </ScoreWrap>
         ) : (
           <ActionsWrap>

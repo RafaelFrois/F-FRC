@@ -526,7 +526,8 @@ export default function Dashboard() {
                       teams={user.regionals[index].alliance.map(a => ({ 
                         teamNumber: a.teamNumber,
                         nickname: a.nickname,
-                        isCaptain: a.isCaptain
+                        isCaptain: a.isCaptain,
+                        points: Number(a?.points || 0)
                       }))}
                       totalScore={user.regionals[index].totalRegionalPoints || selectedAlliance.totalScore}
                       regionName={user.regionals[index].regionalName}
