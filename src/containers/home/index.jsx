@@ -212,6 +212,50 @@ const TeamTopEvent = styled.div`
   min-height: 32px;
 `;
 
+const MostChosenPanel = styled(TopWeekPanel)`
+  margin-top: 0;
+`;
+
+const MostChosenTitle = styled(TopWeekTitle)`
+  text-transform: uppercase;
+`;
+
+const MostChosenGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const MostChosenCard = styled(TeamTopCard)`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+`;
+
+const MostChosenMeta = styled.div`
+  font-size: 12px;
+  color: #4d4d4d;
+  margin-bottom: 6px;
+`;
+
+const MostChosenCount = styled.div`
+  font-size: 30px;
+  font-weight: 800;
+  color: #1a1a1a;
+  line-height: 1;
+`;
+
+const MostChosenRank = styled.div`
+  margin-top: 6px;
+  font-size: 14px;
+  color: #555;
+`;
+
 export default function Dashboard() {
   const [selectedAlliance] = useState({
     teams: [
@@ -227,6 +271,8 @@ export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [topWeekTeams, setTopWeekTeams] = useState([]);
   const [isTopWeekLoading, setIsTopWeekLoading] = useState(true);
+  const [mostChosenTeams, setMostChosenTeams] = useState([]);
+  const [isMostChosenLoading, setIsMostChosenLoading] = useState(true);
 
   function calculateCurrentWeek() {
     const seasonYear = new Date().getFullYear();
@@ -258,6 +304,39 @@ export default function Dashboard() {
       }
     })();
     return () => { mounted = false };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      if (mounted) setIsMostChosenLoading(true);
+
+      try {
+        const week = calculateCurrentWeek();
+        const response = await fetch(`/api/score/top-week?week=${week}&metric=chosen`);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (mounted) {
+          setMostChosenTeams(Array.isArray(data?.teams) ? data.teams.slice(0, 3) : []);
+        }
+      } catch (error) {
+        if (mounted) {
+          setMostChosenTeams([]);
+        }
+      } finally {
+        if (mounted) {
+          setIsMostChosenLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -411,6 +490,32 @@ export default function Dashboard() {
               })}
             </TopWeekGrid>
           </TopWeekPanel>
+
+          <MostChosenPanel>
+            <MostChosenTitle>EQUIPES MAIS ESCALADAS</MostChosenTitle>
+            {isMostChosenLoading && (
+              <TopWeekStatus>Buscando equipes mais escolhidas...</TopWeekStatus>
+            )}
+            <MostChosenGrid>
+              {[0, 1, 2].map((index) => {
+                const team = mostChosenTeams[index];
+                const rank = index + 1;
+
+                return (
+                  <MostChosenCard key={team?.key || `chosen-placeholder-${index}`}>
+                    <TeamTopName>{team?.teamName || (isMostChosenLoading ? 'CARREGANDO...' : 'NOME DA EQUIPE')}</TeamTopName>
+                    <TeamTopLogo src="/Logo-Principal-NoBG.png" alt="Team logo" />
+                    <TeamTopNumber>{team ? `#${team.teamNumber}` : '---'}</TeamTopNumber>
+                    <MostChosenMeta>
+                      {team ? `ESCOLHIDA POR: ${Number(team.peopleCount).toFixed(0)} pessoas` : (isMostChosenLoading ? 'Carregando seleções...' : 'Sem seleções')}
+                    </MostChosenMeta>
+                    <MostChosenCount>{team ? Number(team.peopleCount).toFixed(0) : '---'}</MostChosenCount>
+                    <MostChosenRank>{`${rank}º`}</MostChosenRank>
+                  </MostChosenCard>
+                );
+              })}
+            </MostChosenGrid>
+          </MostChosenPanel>
         </CenterColumn>
         </MainContent>
       </Container>

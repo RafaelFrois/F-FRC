@@ -1,5 +1,6 @@
 import connectMongo from "../../config/mongo.js";
 import Score from "../../src/DataBase/models/score.js";
+import User from "../../src/DataBase/models/Users.js";
 import { getTeamsByEvent } from "../../src/DataBase/services/tba.services.js";
 import { methodNotAllowed, setCors, handleOptions } from "../../lib/server/http.js";
 import { ensureWeekScoresFresh, getCurrentWeek, getWeekEvents } from "../../lib/server/scoringSync.js";
@@ -31,9 +32,58 @@ export default async function handler(req, res) {
     const weekParam = Number(req.query.week);
     const targetWeek = Number.isInteger(weekParam) && weekParam >= 1 ? weekParam : getCurrentWeek(seasonYear);
     const refreshRequested = ["1", "true", "yes"].includes(String(req.query.refresh || "").toLowerCase());
+    const metric = String(req.query.metric || "points").trim().toLowerCase();
 
     if (refreshRequested && !isCronAuthorized(req)) {
       return res.status(401).json({ message: "Não autorizado para refresh forçado" });
+    }
+
+    if (metric === "chosen") {
+      const rows = await User.aggregate([
+        { $unwind: "$regionals" },
+        { $match: { "regionals.week": targetWeek } },
+        { $unwind: "$regionals.alliance" },
+        {
+          $group: {
+            _id: "$regionals.alliance.teamNumber",
+            users: { $addToSet: "$_id" },
+            selectionCount: { $sum: 1 },
+            teamName: { $max: "$regionals.alliance.nickname" }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            teamNumber: "$_id",
+            teamName: {
+              $cond: [
+                { $gt: [{ $strLenCP: { $ifNull: ["$teamName", ""] } }, 0] },
+                "$teamName",
+                { $concat: ["TEAM ", { $toString: "$_id" }] }
+              ]
+            },
+            peopleCount: { $size: "$users" },
+            selectionCount: "$selectionCount"
+          }
+        },
+        { $sort: { peopleCount: -1, selectionCount: -1, teamNumber: 1 } },
+        { $limit: 3 }
+      ]);
+
+      const teams = rows.map((row) => ({
+        key: `chosen:${row.teamNumber}`,
+        teamNumber: Number(row.teamNumber),
+        teamName: String(row.teamName || `TEAM ${row.teamNumber}`),
+        peopleCount: Number(row.peopleCount || 0),
+        selectionCount: Number(row.selectionCount || 0)
+      }));
+
+      return res.status(200).json({
+        week: targetWeek,
+        seasonYear,
+        metric: "chosen",
+        teams
+      });
     }
 
     const refreshSummary = await ensureWeekScoresFresh(seasonYear, targetWeek, {
