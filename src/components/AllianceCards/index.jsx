@@ -170,6 +170,21 @@ const getDisplayTeamName = (team) => {
   return "Nome da equipe";
 };
 
+const parseEventStartDate = (dateInput) => {
+  if (!dateInput) return null;
+
+  if (typeof dateInput === 'string') {
+    const normalized = dateInput.includes('T')
+      ? dateInput
+      : `${dateInput}T00:00:00`;
+    const parsed = new Date(normalized);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const parsed = new Date(dateInput);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
 export const AllianceCard = ({ 
   teams = [], 
   totalScore = 0, 
@@ -183,7 +198,8 @@ export const AllianceCard = ({
   const navigate = useNavigate();
   
   // Verificar se o evento começou
-  const hasStarted = eventStartDate ? new Date() >= new Date(eventStartDate) : false;
+  const parsedEventStartDate = parseEventStartDate(eventStartDate);
+  const hasStarted = parsedEventStartDate ? new Date() >= parsedEventStartDate : false;
 
   // Sempre prioriza a soma dos 3 robôs quando os pontos individuais estão disponíveis.
   const summedAllianceScore = Array.isArray(teams)

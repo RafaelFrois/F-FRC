@@ -17,6 +17,7 @@ const userSchema = new mongoose.Schema({
       regionalName: String,
       week: Number,
       eventKey: String,
+      eventStartDate: Date,
       alliance: [
         {
           teamNumber: Number,
