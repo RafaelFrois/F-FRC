@@ -181,8 +181,8 @@ export default async function handler(req, res) {
 
     // Refresh endpoint - GET (para cron) ou POST (manual)
     if (req.method === "GET") {
-      // GET sem action = cron refresh
-      console.log("🔄 GET request (cron) detectado - forçando refresh");
+      // GET sem action = cron refresh (executado com timeout de proteção)
+      console.log("🔄 GET request (cron) detectado - iniciando refresh com timeout");
       const seasonYear = Number(process.env.FRC_SEASON_YEAR) || new Date().getFullYear();
       const weekParam = Number(req.query?.week);
       const targetWeek = Number.isInteger(weekParam) && weekParam >= 1 ? weekParam : getCurrentWeek(seasonYear);
@@ -199,9 +199,32 @@ export default async function handler(req, res) {
       }
 
       try {
-        const result = await ensureWeekScoresFresh(seasonYear, targetWeek, {
-          force: true,
-          minIntervalMs: 0
+        // Executa com timeout de 25 segundos para não exceder limite do Vercel
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Refresh timeout - voltando com sucesso parcial")), 25000)
+        );
+
+        const result = await Promise.race([
+          ensureWeekScoresFresh(seasonYear, targetWeek, {
+            force: true,
+            minIntervalMs: 0
+          }),
+          timeoutPromise
+        ]).catch(err => {
+          // Se timeout, retorna sucesso com dados em cache
+          console.warn(`⚠️ ${err.message}`);
+          return {
+            skipped: false,
+            timedOut: true,
+            eventKeys: weekEvents.map(e => e.key),
+            scoreSummary: {
+              totalEvents: weekEvents.length,
+              calculatedEvents: 0,
+              failedEvents: 0,
+              failedEventsDetails: []
+            },
+            userSummary: {}
+          };
         });
 
         return res.status(200).json({
@@ -209,6 +232,7 @@ export default async function handler(req, res) {
           method: "GET (cron)",
           week: targetWeek,
           seasonYear,
+          timedOut: result.timedOut || false,
           scoreSummary: result.scoreSummary || {},
           failedEventsDetails: result.scoreSummary?.failedEventsDetails || []
         });

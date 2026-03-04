@@ -81,20 +81,47 @@ async function getEventDataset(eventKey) {
     return cached.value;
   }
 
-  const [teams, matchStatsByTeam, eventEpaResult] = await Promise.all([
-    getEventTeams(normalizedEventKey),
-    getEventMatchStats(normalizedEventKey),
-    getEventEPAByTeam(normalizedEventKey).catch(err => {
+  // Função auxiliar para adicionar timeout
+  const withTimeout = (promise, timeoutMs, label) => {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`Timeout ao buscar ${label} após ${timeoutMs}ms`)), timeoutMs)
+      )
+    ]);
+  };
+
+  const [teams, matchStatsByTeam, eventEpaResult] = await Promise.allSettled([
+    withTimeout(getEventTeams(normalizedEventKey), 8000, "teams").catch(err => {
+      console.warn(`⚠️ Falha ao puxar teams para ${normalizedEventKey}: ${err.message}`);
+      return [];
+    }),
+    withTimeout(getEventMatchStats(normalizedEventKey), 8000, "match stats").catch(err => {
+      console.warn(`⚠️ Falha ao puxar match stats para ${normalizedEventKey}: ${err.message}`);
+      return new Map();
+    }),
+    withTimeout(getEventEPAByTeam(normalizedEventKey), 8000, "EPA").catch(err => {
       console.warn(`⚠️ Falha ao puxar EPA de Statbotics para ${normalizedEventKey}: ${err.message}. Continuando sem EPA.`);
-      return new Map(); // Retorna map vazio se falhar
+      return new Map();
     })
-  ]);
+  ]).then(results => {
+    const values = [null, null, null];
+    for (let i = 0; i < results.length; i++) {
+      if (results[i].status === "fulfilled") {
+        values[i] = results[i].value;
+      } else {
+        console.warn(`⚠️ Promise ${i} rejeitada: ${results[i].reason.message}`);
+        values[i] = i === 2 ? new Map() : (i === 1 ? new Map() : []);
+      }
+    }
+    return values;
+  });
 
   const eventEpaMap = eventEpaResult instanceof Map ? eventEpaResult : new Map();
 
   const value = {
-    teams,
-    matchStatsByTeam,
+    teams: teams || [],
+    matchStatsByTeam: matchStatsByTeam || new Map(),
     eventEpaMap
   };
 
