@@ -4,17 +4,16 @@ import styled from 'styled-components'
 export const Container = styled.div `
     display: flex; //coloca os filhos lado a lado
     flex-direction: row-reverse; // inverte a ordem
-    min-height: calc(100vh - 58px);
+    min-height: 100dvh;
     width: 100%; //largura total da tela
 
     @media (max-width: 900px) {
         flex-direction: column;
-        min-height: calc(100vh - 58px);
+        min-height: 100dvh;
     }
 `
 export const LeftSide = styled.div `
     flex: 1; //ocupa metade da tela
-    height: 100vh;
     background-image: url('/robotsRegister.webp');
     background-size: 180% auto; //imagem cobre toda área
     background-position: center;
@@ -36,14 +35,15 @@ export const RightSide = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
+    min-height: 100dvh;
 
     @media (max-width: 900px) {
         padding: 24px 16px;
-        min-height: calc(100vh - 238px);
+        min-height: 0;
     }
 
     @media (max-width: 640px) {
-        min-height: calc(100vh - 58px);
+        min-height: 100dvh;
     }
 `
 export const Card = styled.div`
