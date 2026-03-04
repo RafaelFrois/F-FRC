@@ -223,7 +223,10 @@ const MostChosenTitle = styled(TopWeekTitle)`
 const MostChosenGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #ececec;
 
   @media (max-width: 900px) {
     grid-template-columns: 1fr;
@@ -231,29 +234,87 @@ const MostChosenGrid = styled.div`
 `;
 
 const MostChosenCard = styled(TeamTopCard)`
+  border-radius: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 10px;
+
+  &:not(:last-child) {
+    border-right: 1px solid #ececec;
+  }
+
+  @media (max-width: 900px) {
+    &:not(:last-child) {
+      border-right: none;
+      border-bottom: 1px solid #ececec;
+    }
+  }
+`;
+
+const MostChosenLeft = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  min-width: 95px;
+`;
+
+const MostChosenLogo = styled(TeamTopLogo)`
+  width: 96px;
+  height: 64px;
+  margin: 0;
+`;
+
+const MostChosenTeamNumber = styled(TeamTopNumber)`
+  margin: 4px 0 0;
+  font-weight: 700;
+  color: #222;
+`;
+
+const MostChosenInfo = styled.div`
+  flex: 1;
+  text-align: left;
+  min-width: 0;
+`;
+
+const MostChosenTeamName = styled(TeamTopName)`
+  margin: 0 0 4px;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const MostChosenMetaLabel = styled.div`
+  font-size: 12px;
+  color: #4d4d4d;
+  font-weight: 700;
 `;
 
 const MostChosenMeta = styled.div`
-  font-size: 12px;
-  color: #4d4d4d;
-  margin-bottom: 6px;
-`;
-
-const MostChosenCount = styled.div`
   font-size: 30px;
   font-weight: 800;
-  color: #1a1a1a;
+  color: #222;
   line-height: 1;
 `;
 
+const MostChosenCount = styled.div`
+  font-size: 26px;
+  font-weight: 800;
+  color: #222;
+  min-width: 42px;
+  text-align: right;
+`;
+
 const MostChosenRank = styled.div`
-  margin-top: 6px;
-  font-size: 14px;
-  color: #555;
+  font-size: 42px;
+  font-weight: 700;
+  color: #111;
+  line-height: 1;
+  min-width: 48px;
+  text-align: right;
 `;
 
 export default function Dashboard() {
@@ -503,13 +564,19 @@ export default function Dashboard() {
 
                 return (
                   <MostChosenCard key={team?.key || `chosen-placeholder-${index}`}>
-                    <TeamTopName>{team?.teamName || (isMostChosenLoading ? 'CARREGANDO...' : 'NOME DA EQUIPE')}</TeamTopName>
-                    <TeamTopLogo src="/Logo-Principal-NoBG.png" alt="Team logo" />
-                    <TeamTopNumber>{team ? `#${team.teamNumber}` : '---'}</TeamTopNumber>
-                    <MostChosenMeta>
-                      {team ? `ESCOLHIDA POR: ${Number(team.peopleCount).toFixed(0)} pessoas` : (isMostChosenLoading ? 'Carregando seleções...' : 'Sem seleções')}
-                    </MostChosenMeta>
-                    <MostChosenCount>{team ? Number(team.peopleCount).toFixed(0) : '---'}</MostChosenCount>
+                    <MostChosenLeft>
+                      <MostChosenLogo src="/Logo-Principal-NoBG.png" alt="Team logo" />
+                      <MostChosenTeamNumber>{team ? `#${team.teamNumber}` : '---'}</MostChosenTeamNumber>
+                    </MostChosenLeft>
+
+                    <MostChosenInfo>
+                      <MostChosenTeamName>{team?.teamName || (isMostChosenLoading ? 'CARREGANDO...' : 'NOME DA EQUIPE')}</MostChosenTeamName>
+                      <MostChosenMetaLabel>ESCOLHIDA POR:</MostChosenMetaLabel>
+                      <MostChosenMeta>
+                        {team ? `${Number(team.peopleCount).toFixed(0)} pessoas` : (isMostChosenLoading ? 'Carregando...' : 'Sem seleções')}
+                      </MostChosenMeta>
+                    </MostChosenInfo>
+
                     <MostChosenRank>{`${rank}º`}</MostChosenRank>
                   </MostChosenCard>
                 );
