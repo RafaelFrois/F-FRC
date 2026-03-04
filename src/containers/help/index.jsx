@@ -36,7 +36,7 @@ const Panel = styled.article`
 const PageTitle = styled.h1`
   margin:0 0 12px 0;
   font-size:26px;
-  color:#0b3f7a;
+  color:#727a0b;
 `;
 
 const SectionTitle = styled.h2`
