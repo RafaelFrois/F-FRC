@@ -29,6 +29,17 @@ const LeftGroup = styled.div`
   gap: 4px;
 `;
 
+const BrandRow = styled.div`
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+
+  @media (max-width: 768px) {
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+`;
+
 const TitleLink = styled(Link)`
   color: #fff;
   text-decoration: none;
@@ -62,6 +73,24 @@ const Subtitle = styled.span`
   color: rgba(255, 255, 255, 0.9);
   font-size: 13px;
   font-weight: 600;
+
+  @media (max-width: 768px) {
+    font-size: 12px;
+  }
+`;
+
+const RankingLink = styled(Link)`
+  color: rgba(255, 255, 255, 0.88);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: #ffffff;
+  }
 
   @media (max-width: 768px) {
     font-size: 12px;
@@ -112,7 +141,10 @@ export default function AppHeader({
     <HeaderBar>
       <HeaderInner $maxWidth={maxWidth}>
         <LeftGroup>
-          {titleNode}
+          <BrandRow>
+            {titleNode}
+            <RankingLink to="/ranking">Ranking Mundial</RankingLink>
+          </BrandRow>
           {subtitle ? <Subtitle>{subtitle}</Subtitle> : null}
         </LeftGroup>
         {rightTo ? <RightLink to={rightTo}>{rightText}</RightLink> : <RightText>{rightText}</RightText>}

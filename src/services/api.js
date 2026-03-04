@@ -177,3 +177,32 @@ export const uploadProfilePhotoMe = async (file) => {
     throw error;
   }
 };
+
+export const getWorldRanking = async ({ search = "", name = "", teamNumber = "" } = {}) => {
+  try {
+    const params = new URLSearchParams();
+    if (String(search || "").trim()) params.set("q", String(search).trim());
+    if (String(name || "").trim()) params.set("name", String(name).trim());
+    if (String(teamNumber || "").trim()) params.set("teamNumber", String(teamNumber).trim());
+    const url = params.toString() ? `/api/ranking?${params.toString()}` : "/api/ranking";
+    const response = await fetch(url, { credentials: "include" });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Erro ao buscar ranking mundial");
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getPublicProfile = async (userId) => {
+  try {
+    const response = await fetch(`/api/ranking/${encodeURIComponent(userId)}`, {
+      credentials: "include"
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Erro ao buscar perfil público");
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
