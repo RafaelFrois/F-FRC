@@ -133,13 +133,14 @@ const TopWeekPanel = styled(Panel)`
 
 const TopWeekTitle = styled.h3`
   margin: 0 0 12px 0;
-  font-size: 28px;
-  color: #4a4a4a;
-  font-weight: 400;
-  letter-spacing: 0.3px;
+  font-size: 32px;
+  color: #222;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
 
   @media (max-width: 768px) {
-    font-size: 22px;
+    font-size: 26px;
   }
 `;
 
@@ -294,8 +295,8 @@ const MostChosenMetaLabel = styled.div`
 `;
 
 const MostChosenMeta = styled.div`
-  font-size: 30px;
-  font-weight: 800;
+  font-size: 18px;
+  font-weight: 700;
   color: #222;
   line-height: 1;
 `;
