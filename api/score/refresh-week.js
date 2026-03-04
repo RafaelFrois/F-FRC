@@ -107,42 +107,53 @@ async function handleRefresh(req, res) {
     });
   }
 
-  const result = await ensureWeekScoresFresh(seasonYear, targetWeek, {
-    force: forceRefresh === true || forceRefresh === "true",
-    minIntervalMs: forceRefresh === true || forceRefresh === "true" ? 0 : undefined
-  });
+  try {
+    const result = await ensureWeekScoresFresh(seasonYear, targetWeek, {
+      force: forceRefresh === true || forceRefresh === "true",
+      minIntervalMs: forceRefresh === true || forceRefresh === "true" ? 0 : undefined
+    });
 
-  if (result.skipped) {
+    if (result.skipped) {
+      return res.status(200).json({
+        success: true,
+        week: targetWeek,
+        seasonYear,
+        message: `Refresh foi ignorado por throttle. Próxima tentativa disponível em ${Number(process.env.WEEK_SCORE_REFRESH_MIN_INTERVAL_MS || 120000) / 1000}s`,
+        skipped: true,
+        reason: result.reason || "THROTTLED",
+        eventsCount: weekEvents.length
+      });
+    }
+
+    console.log(`✅ Refresh de pontuações concluído para week ${targetWeek}:`, {
+      eventKeys: result.eventKeys?.length || 0,
+      calculatedEvents: result.scoreSummary?.calculatedEvents || 0,
+      failedEvents: result.scoreSummary?.failedEvents || 0,
+      usersUpdated: result.userSummary?.updatedUsers || 0
+    });
+
     return res.status(200).json({
       success: true,
       week: targetWeek,
       seasonYear,
-      message: `Refresh foi ignorado por throttle. Próxima tentativa disponível em ${Number(process.env.WEEK_SCORE_REFRESH_MIN_INTERVAL_MS || 120000) / 1000}s`,
-      skipped: true,
-      reason: result.reason || "THROTTLED",
-      eventsCount: weekEvents.length
+      message: "Pontuações atualizadas com sucesso",
+      eventsCount: result.eventKeys?.length || 0,
+      result: {
+        eventKeys: result.eventKeys || [],
+        scoreSummary: result.scoreSummary || {},
+        userSummary: result.userSummary || {}
+      }
+    });
+  } catch (error) {
+    console.error(`❌ ERRO ao fazer refresh: ${error.message}`);
+    console.error(`Stack trace: ${error.stack}`);
+    return res.status(500).json({
+      success: false,
+      message: "Erro ao atualizar pontuações",
+      error: error.message,
+      details: process.env.NODE_ENV === "production" ? undefined : error.stack
     });
   }
-
-  console.log(`✅ Refresh de pontuações concluído para week ${targetWeek}:`, {
-    eventKeys: result.eventKeys?.length || 0,
-    calculatedEvents: result.scoreSummary?.calculatedEvents || 0,
-    failedEvents: result.scoreSummary?.failedEvents || 0,
-    usersUpdated: result.userSummary?.updatedUsers || 0
-  });
-
-  return res.status(200).json({
-    success: true,
-    week: targetWeek,
-    seasonYear,
-    message: "Pontuações atualizadas com sucesso",
-    eventsCount: result.eventKeys?.length || 0,
-    result: {
-      eventKeys: result.eventKeys || [],
-      scoreSummary: result.scoreSummary || {},
-      userSummary: result.userSummary || {}
-    }
-  });
 }
 
 export default async function handler(req, res) {
@@ -154,13 +165,52 @@ export default async function handler(req, res) {
 
     const action = String(req.query?.action || "").toLowerCase();
 
+    // Debug endpoint - GET only
     if (action === "debug") {
-      if (methodNotAllowed(req, res, ["GET"])) return;
+      if (req.method !== "GET") {
+        return res.status(405).json({ message: "Método não permitido" });
+      }
       return await handleDebug(req, res);
     }
 
-    if (methodNotAllowed(req, res, ["POST"])) return;
-    return await handleRefresh(req, res);
+    // Refresh endpoint - GET (para cron) ou POST (manual)
+    if (req.method === "GET") {
+      // GET sem action = cron refresh
+      console.log("🔄 GET request (cron) detectado - forçando refresh");
+      const seasonYear = Number(process.env.FRC_SEASON_YEAR) || new Date().getFullYear();
+      const weekParam = Number(req.query?.week);
+      const targetWeek = Number.isInteger(weekParam) && weekParam >= 1 ? weekParam : getCurrentWeek(seasonYear);
+      
+      const weekEvents = await getWeekEvents(seasonYear, targetWeek);
+      if (!weekEvents || weekEvents.length === 0) {
+        return res.status(200).json({
+          success: true,
+          week: targetWeek,
+          seasonYear,
+          message: `Nenhum evento encontrado para week ${targetWeek}`,
+          eventsCount: 0
+        });
+      }
+
+      const result = await ensureWeekScoresFresh(seasonYear, targetWeek, {
+        force: true,
+        minIntervalMs: 0
+      });
+
+      return res.status(200).json({
+        success: true,
+        method: "GET (cron)",
+        week: targetWeek,
+        seasonYear,
+        result
+      });
+    }
+
+    if (req.method === "POST") {
+      return await handleRefresh(req, res);
+    }
+
+    return res.status(405).json({ message: "Método não permitido" });
   } catch (error) {
     console.error("❌ Erro ao processar requisição de scores:", error.message);
     return res.status(500).json({
