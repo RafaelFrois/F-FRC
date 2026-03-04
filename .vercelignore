@@ -5,12 +5,7 @@ README.md
 IMPLEMENTATION_SUMMARY.md
 TESTING_SCORES.md
 test-scores.ps1
-script/
 scripts/
-src/
-public/
-config/
-lib/
 .env
 .env.*
 .vscode
