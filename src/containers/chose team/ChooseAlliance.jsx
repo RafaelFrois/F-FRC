@@ -182,7 +182,7 @@ function ChooseAlliance() {
     try {
       const alliance = selected.map(s => ({
         teamNumber: s.team.team_number,
-        nickname: s.team.nickname,
+        nickname: s.team.nickname || s.team.name || `Team ${s.team.team_number}`,
         isCaptain: s.isCaptain,
         marketValue: Number(s.team?.price ?? s.team?.marketValue ?? 0)
       }));

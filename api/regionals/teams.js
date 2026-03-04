@@ -71,7 +71,7 @@ export default async function handler(req, res) {
       const mapped = apiTeams.map((team) => ({
         event_key: eventKey,
         team_number: team.team_number,
-        nickname: team.nickname,
+        nickname: team.nickname || team.name || `Team ${team.team_number}`,
         locality: team.locality || "",
         last_event_points: 0
       }));
@@ -143,8 +143,10 @@ export default async function handler(req, res) {
     const pricedTeams = teams.map((team) => {
       const teamNumber = Number(team.team_number);
       const snapshot = snapshotByTeam.get(teamNumber);
+      const base = team.toObject ? team.toObject() : team;
       return {
-        ...(team.toObject ? team.toObject() : team),
+        ...base,
+        nickname: String(base?.nickname || base?.name || `Team ${teamNumber}`),
         price: snapshot?.price ?? 5
       };
     });
