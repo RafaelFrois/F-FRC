@@ -129,6 +129,7 @@ async function handleRefresh(req, res) {
       eventKeys: result.eventKeys?.length || 0,
       calculatedEvents: result.scoreSummary?.calculatedEvents || 0,
       failedEvents: result.scoreSummary?.failedEvents || 0,
+      failedEventsDetails: result.scoreSummary?.failedEventsDetails || [],
       usersUpdated: result.userSummary?.updatedUsers || 0
     });
 
@@ -140,7 +141,12 @@ async function handleRefresh(req, res) {
       eventsCount: result.eventKeys?.length || 0,
       result: {
         eventKeys: result.eventKeys || [],
-        scoreSummary: result.scoreSummary || {},
+        scoreSummary: {
+          totalEvents: result.scoreSummary?.totalEvents,
+          calculatedEvents: result.scoreSummary?.calculatedEvents,
+          failedEvents: result.scoreSummary?.failedEvents,
+          failedEventsDetails: result.scoreSummary?.failedEventsDetails || []
+        },
         userSummary: result.userSummary || {}
       }
     });
@@ -192,18 +198,28 @@ export default async function handler(req, res) {
         });
       }
 
-      const result = await ensureWeekScoresFresh(seasonYear, targetWeek, {
-        force: true,
-        minIntervalMs: 0
-      });
+      try {
+        const result = await ensureWeekScoresFresh(seasonYear, targetWeek, {
+          force: true,
+          minIntervalMs: 0
+        });
 
-      return res.status(200).json({
-        success: true,
-        method: "GET (cron)",
-        week: targetWeek,
-        seasonYear,
-        result
-      });
+        return res.status(200).json({
+          success: true,
+          method: "GET (cron)",
+          week: targetWeek,
+          seasonYear,
+          scoreSummary: result.scoreSummary || {},
+          failedEventsDetails: result.scoreSummary?.failedEventsDetails || []
+        });
+      } catch (error) {
+        console.error(`❌ ERRO no cron: ${error.message}`);
+        return res.status(500).json({
+          success: false,
+          message: "Erro ao executar cron de refresh",
+          error: error.message
+        });
+      }
     }
 
     if (req.method === "POST") {
