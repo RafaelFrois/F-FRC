@@ -357,15 +357,26 @@ export default function Dashboard() {
 
   useEffect(() => {
     let mounted = true;
-    (async () => {
+    let intervalId = null;
+
+    const loadUser = async () => {
       try {
         const u = await getMe();
         if (mounted) setUser(u);
       } catch (e) {
         console.warn('Could not load current user', e);
       }
+    };
+
+    (async () => {
+      await loadUser();
+      intervalId = setInterval(loadUser, 30000);
     })();
-    return () => { mounted = false };
+
+    return () => {
+      mounted = false;
+      if (intervalId) clearInterval(intervalId);
+    };
   }, []);
 
   useEffect(() => {
@@ -518,7 +529,10 @@ export default function Dashboard() {
                       }))}
                       totalScore={user.regionals[index].totalRegionalPoints || selectedAlliance.totalScore}
                       regionName={user.regionals[index].regionalName}
-                      eventStartDate={user.regionals[index].event_start_date}
+                      eventStartDate={user.regionals[index].eventStartDate || user.regionals[index].event_start_date}
+                      totalPrice={(user.regionals[index].alliance || []).reduce((sum, entry) => {
+                        return sum + Number(entry?.marketValue || 0);
+                      }, 0)}
                       eventKey={user.regionals[index].eventKey}
                       isSelected={true}
                       onDelete={handleDeleteAlliance}

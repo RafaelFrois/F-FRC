@@ -73,6 +73,12 @@ const TeamNumber = styled.span`
   word-break: break-word;
 `;
 
+const TeamNickname = styled.p`
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #999;
+`;
+
 const CaptainBadge = styled.span`
   color: #ff6b35;
   font-size: 12px;
@@ -82,16 +88,50 @@ const CaptainBadge = styled.span`
 const ScoreRow = styled.div`
   display:flex;
   align-items:center;
-  gap:12px;
+  justify-content:space-between;
+  gap:10px;
   margin-top:10px;
 `;
 
 const ScoreValue = styled.span`
-  background:linear-gradient(180deg,#3ad976,#2e9f4a);
-  color:#fff;
-  padding:6px 10px;
-  border-radius:6px;
+  color: ${({ $score }) => {
+    const value = Number($score || 0);
+    if (value > 0) return '#1f9d48';
+    if (value < 0) return '#d33b3b';
+    return '#7a7a7a';
+  }};
+  font-size: 20px;
+  line-height: 1;
   font-weight:700;
+`;
+
+const PriceTag = styled.span`
+  font-size: 13px;
+  color: #555;
+  font-weight: 600;
+`;
+
+const ActionsWrap = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+const ScoreWrap = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const DetailsButton = styled.button`
+  background: #fff;
+  color: #333;
+  border: 1px solid #777;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
 `;
 
 const EditButton = styled.button`
@@ -131,6 +171,7 @@ export const AllianceCard = ({
   regionName = '', 
   eventKey = '',
   eventStartDate = null,
+  totalPrice = 0,
   onDelete = null
 }) => {
   const navigate = useNavigate();
@@ -151,6 +192,10 @@ export const AllianceCard = ({
     if (typeof onDelete === 'function') {
       onDelete(eventKey, regionName);
     }
+  };
+
+  const handleDetails = () => {
+    alert('Esse recurso ainda esta em desenvolvimento');
   };
   
   return (
@@ -178,7 +223,7 @@ export const AllianceCard = ({
                 #{team.teamNumber} {team.isCaptain && '⭐'}
               </TeamNumber>
               {team.isCaptain && <CaptainBadge>CAPITÃO</CaptainBadge>}
-              {team.nickname && <p style={{margin: '4px 0 0 0', fontSize: '11px', color: '#999'}}>{team.nickname}</p>}
+              {team.nickname && <TeamNickname>{team.nickname}</TeamNickname>}
             </div>
           </Team>
         ))}
@@ -186,15 +231,16 @@ export const AllianceCard = ({
 
       <ScoreRow>
         {hasStarted ? (
-          <>
-            <ScoreValue>{Number(totalScore).toFixed(2)}</ScoreValue>
-            <div style={{color:'#777'}}>RESULTADOS</div>
-          </>
+          <ScoreWrap>
+            <ScoreValue $score={totalScore}>{Number(totalScore).toFixed(2)}</ScoreValue>
+            <DetailsButton onClick={handleDetails}>VER DETALHES</DetailsButton>
+          </ScoreWrap>
         ) : (
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <ActionsWrap>
             <EditButton onClick={handleEdit}>EDITAR</EditButton>
             <DeleteButton onClick={handleDelete}>EXCLUIR</DeleteButton>
-          </div>
+            <PriceTag>{Number(totalPrice || 0).toFixed(2)} ◈</PriceTag>
+          </ActionsWrap>
         )}
       </ScoreRow>
     </Card>

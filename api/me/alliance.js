@@ -128,6 +128,13 @@ export default async function handler(req, res) {
         return res.status(400).json({ message: "eventKey é obrigatório" });
       }
 
+      const { event: deleteEvent } = await getEventMetadata(normalizedEventKey);
+      if (deleteEvent?.start_date && new Date() >= new Date(deleteEvent.start_date)) {
+        return res.status(403).json({
+          message: "Este regional foi iniciado e não permite excluir a aliança."
+        });
+      }
+
       const removedRegional = (user.regionals || []).find(
         (entry) => normalizeEventKey(entry?.eventKey) === normalizedEventKey
       );
@@ -207,6 +214,7 @@ export default async function handler(req, res) {
       regionalName: String(event?.name || normalizedEventKey),
       week: eventWeek,
       eventKey: normalizedEventKey,
+      eventStartDate: event?.start_date || null,
       alliance: allianceWithPoints,
       totalRegionalPoints,
       createdAt: new Date()
