@@ -72,14 +72,11 @@ export default async function handler(req, res) {
     const refreshRequested = ["1", "true", "yes"].includes(String(req.query.refresh || "").toLowerCase());
     const metric = String(req.query.metric || "points").trim().toLowerCase();
 
-    console.log(`📍 Top-week request: season=${seasonYear}, week=${targetWeek}, metric=${metric}, refresh=${refreshRequested}`);
-
     if (refreshRequested && !isCronAuthorized(req)) {
       return res.status(401).json({ message: "Não autorizado para refresh forçado" });
     }
 
     const weekEvents = await getWeekEvents(seasonYear, targetWeek);
-    console.log(`📅 Week ${targetWeek} tem ${weekEvents?.length || 0} eventos`);
 
     if (metric === "chosen") {
       const rows = await User.aggregate([
@@ -150,10 +147,7 @@ export default async function handler(req, res) {
     });
 
     const eventKeys = weekEvents.map((event) => String(event.key || "").trim().toLowerCase()).filter(Boolean);
-    console.log(`🔑 Event keys para buscar scores: ${eventKeys.join(", ") || "NENHUM"}`);
-    
     if (eventKeys.length === 0) {
-      console.log(`⚠️ Nenhum event key encontrado para week ${targetWeek}!`);
       return res.status(200).json({ week: targetWeek, seasonYear, teams: [] });
     }
 
@@ -162,18 +156,13 @@ export default async function handler(req, res) {
       .limit(100)
       .lean();
 
-    console.log(`📊 Encontrados ${scoreRows.length} scores para os events`);
-
     if (scoreRows.length === 0) {
-      console.log(`🔄 Nenhum score encontrado! Tentando forçar recalculação...`);
       await ensureWeekScoresFresh(seasonYear, targetWeek, { force: true, minIntervalMs: 0 });
 
       scoreRows = await Score.find({ event_key: { $in: eventKeys } })
         .sort({ totalPoints: -1, bonusPoints: -1, winPoints: -1, createdAt: -1 })
         .limit(100)
         .lean();
-
-      console.log(`📊 Após recalculação: ${scoreRows.length} scores encontrados`);
     }
 
     const eventByKey = new Map(weekEvents.map((event) => [String(event.key || "").toLowerCase(), event]));
@@ -221,11 +210,6 @@ export default async function handler(req, res) {
         eventKey,
         eventName: String(event?.name || eventKey)
       });
-    }
-
-    console.log(`🏆 Top 3 scoring teams encontrados: ${top.length} (esperado 3)`);
-    for (const t of top) {
-      console.log(`   - #${t.teamNumber} ${t.teamName}: ${t.points} pts`);
     }
 
     return res.status(200).json({

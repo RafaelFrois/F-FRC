@@ -6,7 +6,6 @@ import {
   getWeekToGenerateForToday,
   hasWeekSnapshot
 } from "../services/marketSnapshot.service.js";
-import { ensureWeekScoresFresh, getCurrentWeek, getWeekEvents } from "../../lib/server/scoringSync.js";
 
 async function updateRegionalLocks() {
   console.log("🕛 Atualizando status de regionais...");
@@ -65,39 +64,6 @@ async function runUpcomingWeeksSnapshotPrewarm() {
   }
 }
 
-async function refreshWeekScores() {
-  const seasonYear = Number(process.env.FRC_SEASON_YEAR) || new Date().getFullYear();
-  const currentWeek = getCurrentWeek(seasonYear);
-
-  try {
-    console.log(`📊 Atualizando pontuações da week ${currentWeek}...`);
-    const weekEvents = await getWeekEvents(seasonYear, currentWeek);
-    
-    if (!weekEvents || weekEvents.length === 0) {
-      console.log(`⏭️ Nenhum evento encontrado para week ${currentWeek}.`);
-      return;
-    }
-
-    const result = await ensureWeekScoresFresh(seasonYear, currentWeek, {
-      force: false,
-      minIntervalMs: 0
-    });
-
-    if (result.skipped) {
-      console.log(`⏭️ Refresh de pontuações foi ignorado (throttled). Próxima tentativa em ${Number(process.env.WEEK_SCORE_REFRESH_MIN_INTERVAL_MS || 120000) / 1000}s`);
-    } else {
-      console.log(`✅ Pontuações atualizadas para week ${currentWeek}:`, {
-        events: result.eventKeys?.length || 0,
-        calculatedEvents: result.scoreSummary?.calculatedEvents || 0,
-        failedEvents: result.scoreSummary?.failedEvents || 0,
-        usersUpdated: result.userSummary?.updatedUsers || 0
-      });
-    }
-  } catch (error) {
-    console.error(`❌ Erro ao atualizar pontuações da week ${currentWeek}:`, error.message);
-  }
-}
-
 // Executa diariamente às 00:05
 cron.schedule("5 0 * * *", async () => {
   await updateRegionalLocks();
@@ -105,19 +71,8 @@ cron.schedule("5 0 * * *", async () => {
   await runUpcomingWeeksSnapshotPrewarm();
 });
 
-// Executa a cada 5 minutos para atualizar pontuações em tempo real durante a week
-cron.schedule("*/5 * * * *", async () => {
-  await refreshWeekScores();
-});
-
 console.log("⏰ Cron diário iniciado (00:05) para lock de regionais e snapshot semanal.");
-console.log("⏰ Cron a cada 5 minutos iniciado para atualização de pontuações em tempo real.");
 
 setTimeout(() => {
   runUpcomingWeeksSnapshotPrewarm();
 }, 3000);
-
-// Executa refresh de scores logo ao iniciar
-setTimeout(() => {
-  refreshWeekScores();
-}, 1000);
