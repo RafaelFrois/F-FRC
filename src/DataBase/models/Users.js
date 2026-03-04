@@ -20,6 +20,7 @@ const userSchema = new mongoose.Schema({
       alliance: [
         {
           teamNumber: Number,
+          nickname: String,
           isCaptain: Boolean,
           points: { type: Number, default: 0 },
           marketValue: { type: Number, default: 0 }
