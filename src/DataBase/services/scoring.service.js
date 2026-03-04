@@ -7,7 +7,7 @@ const TELEOP_EPA_STEP = 5;
 const ENDGAME_EPA_STEP = 3;
 
 const AUTO_POINTS_PER_STEP = 2;
-const TELEOP_POINTS_PER_STEP = 0.5;
+const TELEOP_POINTS_PER_STEP = 1.5;
 const ENDGAME_POINTS_PER_STEP = 3;
 
 const WIN_POINTS = 2;
@@ -18,7 +18,6 @@ const PENALTY_PER_OCCURRENCE = -3;
 const YELLOW_CARD_POINTS = -6;
 const RED_CARD_POINTS = -15;
 
-const BONUS_EVENT_EPA = 6;
 const BONUS_AUTO_EPA = 4;
 const BONUS_TELEOP_EPA = 4;
 const BONUS_ENDGAME_EPA = 4;
@@ -59,6 +58,7 @@ function getTopTeamKey(rows, fieldName) {
 function buildDefaultMatchStats(teamKey) {
   return {
     team_key: teamKey,
+    qualificationMatches: 0,
     wins: 0,
     losses: 0,
     ties: 0,
@@ -167,25 +167,40 @@ export async function calculateEventScores(eventKey) {
     uniqueTeamKeys.map((teamKey) => ensureTeamEventEpa(teamKey, normalizedEventKey, eventEpaMap))
   );
 
+  const eligibleTeamKeys = uniqueTeamKeys.filter((teamKey) => {
+    const matchStats = matchStatsByTeam.get(teamKey) || buildDefaultMatchStats(teamKey);
+    return Number(matchStats.qualificationMatches || 0) > 0;
+  });
+
+  if (eligibleTeamKeys.length === 0) {
+    await Score.deleteMany({ event_key: normalizedEventKey });
+    return {
+      event_key: normalizedEventKey,
+      teamsCount: 0,
+      ranking: []
+    };
+  }
+
+  const eligibleEpaRows = epaRows.filter((row) => eligibleTeamKeys.includes(normalizeTeamKey(row?.team_key)));
+
   const bonusByTeam = new Map();
-  const topEventTeam = getTopTeamKey(epaRows, "event_epa");
-  const topAutoTeam = getTopTeamKey(epaRows, "auto_epa");
-  const topTeleopTeam = getTopTeamKey(epaRows, "teleop_epa");
-  const topEndgameTeam = getTopTeamKey(epaRows, "endgame_epa");
 
   const addBonus = (teamKey, amount) => {
     if (!teamKey) return;
     bonusByTeam.set(teamKey, Number(bonusByTeam.get(teamKey) || 0) + amount);
   };
 
-  addBonus(topEventTeam, BONUS_EVENT_EPA);
-  addBonus(topAutoTeam, BONUS_AUTO_EPA);
-  addBonus(topTeleopTeam, BONUS_TELEOP_EPA);
-  addBonus(topEndgameTeam, BONUS_ENDGAME_EPA);
+  const topAutoEligibleTeam = getTopTeamKey(eligibleEpaRows, "auto_epa");
+  const topTeleopEligibleTeam = getTopTeamKey(eligibleEpaRows, "teleop_epa");
+  const topEndgameEligibleTeam = getTopTeamKey(eligibleEpaRows, "endgame_epa");
+
+  addBonus(topAutoEligibleTeam, BONUS_AUTO_EPA);
+  addBonus(topTeleopEligibleTeam, BONUS_TELEOP_EPA);
+  addBonus(topEndgameEligibleTeam, BONUS_ENDGAME_EPA);
 
   const scoreDocs = [];
 
-  for (const teamKey of uniqueTeamKeys) {
+  for (const teamKey of eligibleTeamKeys) {
     const epa = eventEpaMap.get(teamKey) || {
       event_epa: 0,
       auto_epa: 0,
@@ -227,12 +242,6 @@ export async function calculateEventScores(eventKey) {
     });
   }
 
-  if (scoreDocs.length === 0) {
-    throw new ScoringServiceError("Nenhuma pontuação foi calculada para o evento", {
-      event_key: normalizedEventKey
-    });
-  }
-
   await Score.bulkWrite(
     scoreDocs.map((doc) => ({
       updateOne: {
@@ -245,6 +254,11 @@ export async function calculateEventScores(eventKey) {
       }
     }))
   );
+
+  await Score.deleteMany({
+    event_key: normalizedEventKey,
+    team_key: { $nin: scoreDocs.map((doc) => doc.team_key) }
+  });
 
   const ranking = await Score.find({ event_key: normalizedEventKey })
     .sort({ totalPoints: -1, bonusPoints: -1, winPoints: -1, team_key: 1 })

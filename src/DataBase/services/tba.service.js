@@ -121,6 +121,7 @@ export async function getEventMatchStats(eventKey) {
   const statsByTeam = new Map();
 
   for (const match of matches) {
+    const isQualificationMatch = String(match?.comp_level || "").toLowerCase() === "qm";
     const redTeams = toTeamKeys(match?.alliances?.red?.team_keys);
     const blueTeams = toTeamKeys(match?.alliances?.blue?.team_keys);
 
@@ -142,6 +143,7 @@ export async function getEventMatchStats(eventKey) {
       if (!statsByTeam.has(teamKey)) {
         statsByTeam.set(teamKey, {
           team_key: teamKey,
+          qualificationMatches: 0,
           wins: 0,
           losses: 0,
           ties: 0,
@@ -173,7 +175,18 @@ export async function getEventMatchStats(eventKey) {
       }
     };
 
-    if (hasValidScores) {
+    const applyQualificationMatchPlayed = (teamKeys) => {
+      for (const teamKey of teamKeys) {
+        const team = ensureTeam(teamKey);
+        if (!team) continue;
+        team.qualificationMatches += 1;
+      }
+    };
+
+    if (isQualificationMatch && hasValidScores) {
+      applyQualificationMatchPlayed(redTeams);
+      applyQualificationMatchPlayed(blueTeams);
+
       if (redScore > blueScore) {
         applyResult(redTeams, "win");
         applyResult(blueTeams, "loss");
@@ -184,22 +197,22 @@ export async function getEventMatchStats(eventKey) {
         applyResult(redTeams, "tie");
         applyResult(blueTeams, "tie");
       }
-    }
 
-    applyFouls(redTeams, redFoulCount, redTechFoulCount);
-    applyFouls(blueTeams, blueFoulCount, blueTechFoulCount);
+      applyFouls(redTeams, redFoulCount, redTechFoulCount);
+      applyFouls(blueTeams, blueFoulCount, blueTechFoulCount);
 
-    const cards = Array.isArray(match?.cards) ? match.cards : [];
-    for (const card of cards) {
-      const cardTeamKey = extractTeamKeyFromCard(card);
-      const cardType = extractCardType(card);
-      const team = ensureTeam(cardTeamKey);
-      if (!team) continue;
+      const cards = Array.isArray(match?.cards) ? match.cards : [];
+      for (const card of cards) {
+        const cardTeamKey = extractTeamKeyFromCard(card);
+        const cardType = extractCardType(card);
+        const team = ensureTeam(cardTeamKey);
+        if (!team) continue;
 
-      if (cardType.includes("yellow")) {
-        team.yellowCards += 1;
-      } else if (cardType.includes("red")) {
-        team.redCards += 1;
+        if (cardType.includes("yellow")) {
+          team.yellowCards += 1;
+        } else if (cardType.includes("red")) {
+          team.redCards += 1;
+        }
       }
     }
   }
