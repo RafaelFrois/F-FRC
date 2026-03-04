@@ -81,11 +81,16 @@ async function getEventDataset(eventKey) {
     return cached.value;
   }
 
-  const [teams, matchStatsByTeam, eventEpaMap] = await Promise.all([
+  const [teams, matchStatsByTeam, eventEpaResult] = await Promise.all([
     getEventTeams(normalizedEventKey),
     getEventMatchStats(normalizedEventKey),
-    getEventEPAByTeam(normalizedEventKey)
+    getEventEPAByTeam(normalizedEventKey).catch(err => {
+      console.warn(`⚠️ Falha ao puxar EPA de Statbotics para ${normalizedEventKey}: ${err.message}. Continuando sem EPA.`);
+      return new Map(); // Retorna map vazio se falhar
+    })
   ]);
+
+  const eventEpaMap = eventEpaResult instanceof Map ? eventEpaResult : new Map();
 
   const value = {
     teams,
