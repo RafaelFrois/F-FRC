@@ -1,7 +1,7 @@
 import connectMongo from "../../config/mongo.js";
 import User from "../../src/DataBase/models/Users.js";
 import Score from "../../src/DataBase/models/score.js";
-import { getEventsByYear } from "../../src/DataBase/services/tba.services.js";
+import { getEventsByYear, getTeamsByEvent } from "../../src/DataBase/services/tba.services.js";
 import { calculateEventScores } from "../../src/DataBase/services/scoring.service.js";
 import { getUserIdFromRequest } from "../../lib/server/auth.js";
 import { ensureUserSeasonState } from "../../lib/server/userSeason.js";
@@ -44,6 +44,33 @@ function sanitizeAlliance(rawAlliance) {
       };
     })
     .filter(Boolean);
+}
+
+async function enrichAllianceNamesFromTba(eventKey, alliance) {
+  const safeAlliance = Array.isArray(alliance) ? alliance : [];
+  if (!eventKey || safeAlliance.length === 0) return safeAlliance;
+
+  try {
+    const teams = await getTeamsByEvent(eventKey);
+    const nameByNumber = new Map(
+      (Array.isArray(teams) ? teams : []).map((team) => [
+        Number(team?.team_number),
+        String(team?.nickname || team?.name || "").trim()
+      ])
+    );
+
+    return safeAlliance.map((entry) => {
+      const teamNumber = Number(entry?.teamNumber);
+      const officialName = String(nameByNumber.get(teamNumber) || "").trim();
+
+      return {
+        ...entry,
+        nickname: officialName || String(entry?.nickname || `Team ${teamNumber}`)
+      };
+    });
+  } catch {
+    return safeAlliance;
+  }
 }
 
 function calculateAllianceCost(alliance) {
@@ -208,7 +235,8 @@ export default async function handler(req, res) {
     const seasonYear = event?.start_date ? new Date(event.start_date).getFullYear() : currentYear;
     const eventWeek = event?.start_date ? getWeekNumberFromDate(event.start_date, seasonYear) : 1;
 
-    const { allianceWithPoints, totalRegionalPoints } = await resolveAlliancePoints(normalizedEventKey, sanitizedAlliance);
+    const namedAlliance = await enrichAllianceNamesFromTba(normalizedEventKey, sanitizedAlliance);
+    const { allianceWithPoints, totalRegionalPoints } = await resolveAlliancePoints(normalizedEventKey, namedAlliance);
 
     const regionalPayload = {
       regionalName: String(event?.name || normalizedEventKey),
