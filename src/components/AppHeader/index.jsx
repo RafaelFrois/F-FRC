@@ -52,23 +52,6 @@ const TitleLink = styled(Link)`
   }
 `;
 
-const TitleButton = styled.button`
-  color: #fff;
-  background: transparent;
-  border: none;
-  padding: 0;
-  margin: 0;
-  text-align: left;
-  font-weight: 700;
-  font-size: 20px;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-
-  @media (max-width: 768px) {
-    font-size: 18px;
-  }
-`;
-
 const Subtitle = styled.span`
   color: rgba(255, 255, 255, 0.9);
   font-size: 13px;
@@ -97,17 +80,6 @@ const RankingLink = styled(Link)`
   }
 `;
 
-const RightText = styled.span`
-  color: rgba(255, 255, 255, 0.95);
-  font-size: 15px;
-  font-weight: 700;
-  text-align: right;
-
-  @media (max-width: 768px) {
-    font-size: 13px;
-  }
-`;
-
 const RightLink = styled(Link)`
   color: rgba(255, 255, 255, 0.95);
   text-decoration: none;
@@ -124,18 +96,11 @@ export default function AppHeader({
   title = "FANTASY - FRC",
   subtitle,
   titleTo,
-  onTitleClick,
-  rightText,
-  rightTo,
   maxWidth = 1200
 }) {
-  const titleNode = titleTo ? (
-    <TitleLink to={titleTo}>{title}</TitleLink>
-  ) : (
-    <TitleButton type="button" onClick={onTitleClick} style={{ cursor: onTitleClick ? "pointer" : "default" }}>
-      {title}
-    </TitleButton>
-  );
+  const safeTitleTo = titleTo || "/dashboard";
+
+  const titleNode = <TitleLink to={safeTitleTo}>{title}</TitleLink>;
 
   return (
     <HeaderBar>
@@ -147,7 +112,7 @@ export default function AppHeader({
           </BrandRow>
           {subtitle ? <Subtitle>{subtitle}</Subtitle> : null}
         </LeftGroup>
-        {rightTo ? <RightLink to={rightTo}>{rightText}</RightLink> : <RightText>{rightText}</RightText>}
+        <RightLink to="/ranking">RANKING MUNDIAL</RightLink>
       </HeaderInner>
     </HeaderBar>
   );
