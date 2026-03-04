@@ -43,6 +43,7 @@ export default async function handler(req, res) {
     await connectMongo();
 
     const userId = getUserIdFromRequest(req);
+    const targetUserId = String(req.query?.userId || "").trim();
     const filters = {
       search: parseSearch(req.query?.q),
       name: parseSearch(req.query?.name),
@@ -78,6 +79,31 @@ export default async function handler(req, res) {
       ...entry,
       position: index + 1
     }));
+
+    if (targetUserId) {
+      const targetUser = rankingWithPositions.find((entry) => entry.id === targetUserId);
+      if (!targetUser) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+
+      const fullUser = await User.findById(targetUserId).select("username profilePhoto frcTeamNumber rookieYear patrimonio totalPointsSeason");
+      if (!fullUser) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+
+      return res.status(200).json({
+        user: {
+          id: String(fullUser?._id || ""),
+          username: String(fullUser?.username || "Usuário"),
+          profilePhoto: fullUser?.profilePhoto || "",
+          frcTeamNumber: Number.isFinite(Number(fullUser?.frcTeamNumber)) ? Number(fullUser.frcTeamNumber) : null,
+          rookieYear: Number.isFinite(Number(fullUser?.rookieYear)) ? Number(fullUser.rookieYear) : null,
+          patrimonio: Number(fullUser?.patrimonio || 0),
+          totalPointsSeason: Number(fullUser?.totalPointsSeason || 0)
+        },
+        position: targetUser.position
+      });
+    }
 
     const filtered = rankingWithPositions.filter((entry) => includesSearch(entry, filters));
     const currentUserRanking = rankingWithPositions.find((entry) => entry.id === String(userId));

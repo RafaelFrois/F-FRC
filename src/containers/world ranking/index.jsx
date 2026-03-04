@@ -103,6 +103,19 @@ const RowPoints = styled(RowCell)`
   font-weight: 700;
 `;
 
+const ActionCell = styled(RowCell)`
+  display: flex;
+  justify-content: flex-end;
+
+  @media (max-width: 760px) {
+    grid-column: 2;
+    justify-content: flex-end;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 10px;
+    margin-bottom: 2px;
+  }
+`;
+
 const ViewProfileButton = styled.button`
   background: #17b838;
   color: #fff;
@@ -286,11 +299,11 @@ export default function WorldRankingPage() {
                     <MobileMeta>Team #{entry.frcTeamNumber || "---"}</MobileMeta>
                   </RowCell>
                   <RowPoints>{Number(entry.totalPointsSeason || 0).toFixed(2)}</RowPoints>
-                  <RowCell>
+                  <ActionCell>
                     <ViewProfileButton onClick={() => navigate(`/ranking/profile/${entry.id}`)}>
                       VER PERFIL
                     </ViewProfileButton>
-                  </RowCell>
+                  </ActionCell>
                 </React.Fragment>
               ))}
             </RankingTable>

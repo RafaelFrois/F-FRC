@@ -196,7 +196,7 @@ export const getWorldRanking = async ({ search = "", name = "", teamNumber = "" 
 
 export const getPublicProfile = async (userId) => {
   try {
-    const response = await fetch(`/api/ranking/${encodeURIComponent(userId)}`, {
+    const response = await fetch(`/api/ranking?userId=${encodeURIComponent(userId)}`, {
       credentials: "include"
     });
     const data = await response.json();

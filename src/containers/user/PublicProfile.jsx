@@ -96,7 +96,6 @@ export default function PublicProfile() {
   const navigate = useNavigate();
   const { userId } = useParams();
   const [profile, setProfile] = useState(null);
-  const [rankPosition, setRankPosition] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -109,7 +108,6 @@ export default function PublicProfile() {
         if (!mounted) return;
 
         setProfile(data?.user || null);
-        setRankPosition(data?.position || null);
       } catch {
         if (mounted) {
           setProfile(null);
@@ -181,13 +179,6 @@ export default function PublicProfile() {
                 <Col>
                   <Label>TEAM NUMBER</Label>
                   <Value>#{profile?.frcTeamNumber ?? "---"}</Value>
-                </Col>
-              </Row>
-
-              <Row>
-                <Col>
-                  <Label>POSIÇÃO NO RANKING MUNDIAL</Label>
-                  <Value>{rankPosition || "-"}</Value>
                 </Col>
               </Row>
 
