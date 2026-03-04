@@ -58,32 +58,6 @@ async function resolveWeekTeamNamesByNumber(weekEvents, teamNumbers) {
   return nameByNumber;
 }
 
-async function resolveTopNamesByEvent(topEntries) {
-  const entries = Array.isArray(topEntries) ? topEntries : [];
-  const eventKeys = [...new Set(entries.map((entry) => String(entry?.eventKey || "").toLowerCase()).filter(Boolean))];
-  const nameByEventAndNumber = new Map();
-
-  if (eventKeys.length === 0) return nameByEventAndNumber;
-
-  const settled = await Promise.allSettled(eventKeys.map((eventKey) => getTeamsByEvent(eventKey)));
-  for (let index = 0; index < settled.length; index += 1) {
-    const eventKey = eventKeys[index];
-    const result = settled[index];
-    if (result.status !== "fulfilled") continue;
-
-    const teams = Array.isArray(result.value) ? result.value : [];
-    for (const team of teams) {
-      const number = Number(team?.team_number);
-      if (!Number.isFinite(number)) continue;
-
-      const nickname = String(team?.nickname || team?.name || `TEAM ${number}`).trim();
-      nameByEventAndNumber.set(`${eventKey}:${number}`, nickname || `TEAM ${number}`);
-    }
-  }
-
-  return nameByEventAndNumber;
-}
-
 export default async function handler(req, res) {
   setCors(req, res);
   if (handleOptions(req, res)) return;
@@ -101,6 +75,8 @@ export default async function handler(req, res) {
     if (refreshRequested && !isCronAuthorized(req)) {
       return res.status(401).json({ message: "Não autorizado para refresh forçado" });
     }
+
+    const weekEvents = await getWeekEvents(seasonYear, targetWeek);
 
     if (metric === "chosen") {
       const rows = await User.aggregate([
@@ -147,7 +123,6 @@ export default async function handler(req, res) {
         .map((entry) => entry.teamNumber);
 
       if (missingNameNumbers.length > 0) {
-        const weekEvents = await getWeekEvents(seasonYear, targetWeek);
         const resolvedNameByNumber = await resolveWeekTeamNamesByNumber(weekEvents, missingNameNumbers);
         for (const entry of teams) {
           if (!isPlaceholderTeamName(entry.teamName, entry.teamNumber)) continue;
@@ -166,7 +141,10 @@ export default async function handler(req, res) {
       });
     }
 
-    const weekEvents = await getWeekEvents(seasonYear, targetWeek);
+    const refreshSummary = await ensureWeekScoresFresh(seasonYear, targetWeek, {
+      force: refreshRequested,
+      minIntervalMs: refreshRequested ? 0 : undefined
+    });
 
     const eventKeys = weekEvents.map((event) => String(event.key || "").trim().toLowerCase()).filter(Boolean);
     if (eventKeys.length === 0) {
@@ -178,7 +156,7 @@ export default async function handler(req, res) {
       .limit(100)
       .lean();
 
-    if (refreshRequested || scoreRows.length === 0) {
+    if (scoreRows.length === 0) {
       await ensureWeekScoresFresh(seasonYear, targetWeek, { force: true, minIntervalMs: 0 });
 
       scoreRows = await Score.find({ event_key: { $in: eventKeys } })
@@ -188,47 +166,57 @@ export default async function handler(req, res) {
     }
 
     const eventByKey = new Map(weekEvents.map((event) => [String(event.key || "").toLowerCase(), event]));
-    const topCandidates = [];
-    const usedKeys = new Set();
+    const teamNameByEventAndNumber = new Map();
+
+    const top = [];
 
     for (const row of scoreRows) {
-      if (topCandidates.length >= 3) break;
+      if (top.length >= 3) break;
 
       const eventKey = String(row.event_key || "").toLowerCase();
       const teamNumber = parseTeamNumber(row.team_key);
       if (!teamNumber) continue;
 
       const dedupeKey = `${eventKey}:${teamNumber}`;
-      if (usedKeys.has(dedupeKey)) continue;
-      usedKeys.add(dedupeKey);
+      if (top.some((entry) => entry.key === dedupeKey)) continue;
 
-      topCandidates.push({
+      const cacheKey = `${eventKey}:${teamNumber}`;
+      let teamName = teamNameByEventAndNumber.get(cacheKey);
+
+      if (!teamName) {
+        try {
+          const teams = await getTeamsByEvent(eventKey);
+          const byNumber = new Map(
+            teams.map((team) => [Number(team.team_number), String(team.nickname || `TEAM ${team.team_number}`)])
+          );
+
+          for (const [number, nickname] of byNumber.entries()) {
+            teamNameByEventAndNumber.set(`${eventKey}:${number}`, nickname);
+          }
+
+          teamName = byNumber.get(teamNumber);
+        } catch {
+          teamName = null;
+        }
+      }
+
+      const event = eventByKey.get(eventKey);
+
+      top.push({
         key: dedupeKey,
         teamNumber,
+        teamName: teamName || `TEAM ${teamNumber}`,
         points: Number(row.totalPoints || 0),
-        eventKey
+        eventKey,
+        eventName: String(event?.name || eventKey)
       });
     }
-
-    const resolvedNames = await resolveTopNamesByEvent(topCandidates);
-    const top = topCandidates.map((entry) => {
-      const event = eventByKey.get(entry.eventKey);
-      const teamName = resolvedNames.get(`${entry.eventKey}:${entry.teamNumber}`) || `TEAM ${entry.teamNumber}`;
-
-      return {
-        key: entry.key,
-        teamNumber: entry.teamNumber,
-        teamName,
-        points: entry.points,
-        eventKey: entry.eventKey,
-        eventName: String(event?.name || entry.eventKey)
-      };
-    });
 
     return res.status(200).json({
       week: targetWeek,
       seasonYear,
       refreshed: refreshRequested,
+      refreshSummary: refreshRequested ? refreshSummary : undefined,
       teams: top
     });
   } catch (error) {
