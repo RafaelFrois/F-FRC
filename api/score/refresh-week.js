@@ -1,5 +1,7 @@
 import connectMongo from "../../config/mongo.js";
 import { ensureWeekScoresFresh, getCurrentWeek, getWeekEvents } from "../../lib/server/scoringSync.js";
+import { getEventsByYear } from "../../src/DataBase/services/tba.services.js";
+import Score from "../../src/DataBase/models/score.js";
 import { methodNotAllowed, setCors, handleOptions } from "../../lib/server/http.js";
 
 function isCronAuthorized(req) {
@@ -11,83 +13,159 @@ function isCronAuthorized(req) {
   return authHeader === expected;
 }
 
-export default async function handler(req, res) {
-  setCors(req, res);
-  if (handleOptions(req, res)) return;
-  if (methodNotAllowed(req, res, ["POST"])) return;
+async function handleDebug(req, res) {
+  const seasonYear = Number(process.env.FRC_SEASON_YEAR) || new Date().getFullYear();
+  const currentWeek = getCurrentWeek(seasonYear);
 
-  try {
-    await connectMongo();
+  console.log(`🔍 DEBUG: Verificando status do sistema para ${seasonYear}-W${currentWeek}`);
 
-    const seasonYear = Number(process.env.FRC_SEASON_YEAR) || new Date().getFullYear();
-    const weekParam = Number(req.body?.week || req.query?.week);
-    const targetWeek = Number.isInteger(weekParam) && weekParam >= 1 ? weekParam : getCurrentWeek(seasonYear);
-    const forceRefresh = req.body?.force ?? req.query?.force;
+  const allEvents = await getEventsByYear(seasonYear);
+  console.log(`📡 Total de eventos no TBA: ${allEvents?.length || 0}`);
 
-    // Verifica autorização para refresh forçado
-    if (forceRefresh && !isCronAuthorized(req)) {
-      return res.status(401).json({
-        message: "Não autorizado para refresh forçado",
-        details: "CRON_SECRET não foi fornecido ou é inválido"
-      });
-    }
+  const weekEvents = await getWeekEvents(seasonYear, currentWeek);
+  console.log(`📅 Eventos na week ${currentWeek}: ${weekEvents?.length || 0}`);
 
-    console.log(`🔄 Iniciando refresh de pontuações para week ${targetWeek}...`);
+  const allScores = await Score.countDocuments();
+  const eventKeys = weekEvents.map((e) => String(e.key || "").trim().toLowerCase()).filter(Boolean);
+  const weekScores = await Score.find({ event_key: { $in: eventKeys } }).lean();
 
-    const weekEvents = await getWeekEvents(seasonYear, targetWeek);
+  console.log(`📊 Total de scores no banco: ${allScores}`);
+  console.log(`📊 Scores para week ${currentWeek}: ${weekScores.length}`);
 
-    if (!weekEvents || weekEvents.length === 0) {
-      return res.status(200).json({
-        success: true,
-        week: targetWeek,
-        seasonYear,
-        message: `Nenhum evento encontrado para week ${targetWeek}`,
-        eventsCount: 0,
-        result: null
-      });
-    }
+  const scoresByEvent = {};
+  for (const score of weekScores) {
+    const eventKey = String(score.event_key || "").toLowerCase();
+    scoresByEvent[eventKey] = (scoresByEvent[eventKey] || 0) + 1;
+  }
 
-    const result = await ensureWeekScoresFresh(seasonYear, targetWeek, {
-      force: forceRefresh === true || forceRefresh === "true",
-      minIntervalMs: forceRefresh === true || forceRefresh === "true" ? 0 : undefined
+  const topScores = weekScores
+    .sort((a, b) => Number(b.totalPoints || 0) - Number(a.totalPoints || 0))
+    .slice(0, 5);
+
+  return res.status(200).json({
+    success: true,
+    seasonYear,
+    currentWeek,
+    tba: {
+      totalEventsYear: allEvents?.length || 0,
+      eventsThisWeek: weekEvents?.length || 0,
+      eventKeys: eventKeys,
+      events: (weekEvents || []).map((e) => ({
+        key: e.key,
+        name: e.name,
+        startDate: e.start_date,
+        endDate: e.end_date,
+        location: e.location,
+        eventType: e.event_type
+      }))
+    },
+    database: {
+      totalScoresAllEvents: allScores,
+      scoresThisWeek: weekScores.length,
+      scoresPerEvent: scoresByEvent,
+      topScores: topScores.map((s) => ({
+        teamKey: s.team_key,
+        eventKey: s.event_key,
+        totalPoints: s.totalPoints,
+        autoPoints: s.autoPoints,
+        teleopPoints: s.teleopPoints,
+        endgamePoints: s.endgamePoints,
+        bonusPoints: s.bonusPoints,
+        winPoints: s.winPoints,
+        createdAt: s.createdAt
+      }))
+    },
+    timestamp: new Date().toISOString()
+  });
+}
+
+async function handleRefresh(req, res) {
+  const seasonYear = Number(process.env.FRC_SEASON_YEAR) || new Date().getFullYear();
+  const weekParam = Number(req.body?.week || req.query?.week);
+  const targetWeek = Number.isInteger(weekParam) && weekParam >= 1 ? weekParam : getCurrentWeek(seasonYear);
+  const forceRefresh = req.body?.force ?? req.query?.force;
+
+  if (forceRefresh && !isCronAuthorized(req)) {
+    return res.status(401).json({
+      message: "Não autorizado para refresh forçado",
+      details: "CRON_SECRET não foi fornecido ou é inválido"
     });
+  }
 
-    if (result.skipped) {
-      return res.status(200).json({
-        success: true,
-        week: targetWeek,
-        seasonYear,
-        message: `Refresh foi ignorado por throttle. Próxima tentativa disponível em ${Number(process.env.WEEK_SCORE_REFRESH_MIN_INTERVAL_MS || 120000) / 1000}s`,
-        skipped: true,
-        reason: result.reason || "THROTTLED",
-        eventsCount: weekEvents.length
-      });
-    }
+  console.log(`🔄 Iniciando refresh de pontuações para week ${targetWeek}...`);
 
-    console.log(`✅ Refresh de pontuações concluído para week ${targetWeek}:`, {
-      eventKeys: result.eventKeys?.length || 0,
-      calculatedEvents: result.scoreSummary?.calculatedEvents || 0,
-      failedEvents: result.scoreSummary?.failedEvents || 0,
-      usersUpdated: result.userSummary?.updatedUsers || 0
-    });
+  const weekEvents = await getWeekEvents(seasonYear, targetWeek);
 
+  if (!weekEvents || weekEvents.length === 0) {
     return res.status(200).json({
       success: true,
       week: targetWeek,
       seasonYear,
-      message: "Pontuações atualizadas com sucesso",
-      eventsCount: result.eventKeys?.length || 0,
-      result: {
-        eventKeys: result.eventKeys || [],
-        scoreSummary: result.scoreSummary || {},
-        userSummary: result.userSummary || {}
-      }
+      message: `Nenhum evento encontrado para week ${targetWeek}`,
+      eventsCount: 0,
+      result: null
     });
+  }
+
+  const result = await ensureWeekScoresFresh(seasonYear, targetWeek, {
+    force: forceRefresh === true || forceRefresh === "true",
+    minIntervalMs: forceRefresh === true || forceRefresh === "true" ? 0 : undefined
+  });
+
+  if (result.skipped) {
+    return res.status(200).json({
+      success: true,
+      week: targetWeek,
+      seasonYear,
+      message: `Refresh foi ignorado por throttle. Próxima tentativa disponível em ${Number(process.env.WEEK_SCORE_REFRESH_MIN_INTERVAL_MS || 120000) / 1000}s`,
+      skipped: true,
+      reason: result.reason || "THROTTLED",
+      eventsCount: weekEvents.length
+    });
+  }
+
+  console.log(`✅ Refresh de pontuações concluído para week ${targetWeek}:`, {
+    eventKeys: result.eventKeys?.length || 0,
+    calculatedEvents: result.scoreSummary?.calculatedEvents || 0,
+    failedEvents: result.scoreSummary?.failedEvents || 0,
+    usersUpdated: result.userSummary?.updatedUsers || 0
+  });
+
+  return res.status(200).json({
+    success: true,
+    week: targetWeek,
+    seasonYear,
+    message: "Pontuações atualizadas com sucesso",
+    eventsCount: result.eventKeys?.length || 0,
+    result: {
+      eventKeys: result.eventKeys || [],
+      scoreSummary: result.scoreSummary || {},
+      userSummary: result.userSummary || {}
+    }
+  });
+}
+
+export default async function handler(req, res) {
+  setCors(req, res);
+  if (handleOptions(req, res)) return;
+
+  try {
+    await connectMongo();
+
+    const action = String(req.query?.action || "").toLowerCase();
+
+    if (action === "debug") {
+      if (methodNotAllowed(req, res, ["GET"])) return;
+      return await handleDebug(req, res);
+    }
+
+    if (methodNotAllowed(req, res, ["POST"])) return;
+    return await handleRefresh(req, res);
   } catch (error) {
-    console.error("❌ Erro ao fazer refresh de pontuações:", error.message);
+    console.error("❌ Erro ao processar requisição de scores:", error.message);
     return res.status(500).json({
       success: false,
-      message: "Erro ao atualizar pontuações",
+      message: "Erro ao processar requisição",
       details: process.env.NODE_ENV === "production" ? undefined : error.message
     });
   }

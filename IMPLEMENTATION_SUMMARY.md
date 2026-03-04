@@ -23,11 +23,11 @@ cron.schedule("*/5 * * * *", async () => {
 ---
 
 ### 2. **Endpoint de Refresh Manual** 🔄
-Arquivo: `api/score/refresh-week.js` (NOVO)
+Arquivo: `api/score/refresh-week.js` (modificado)
 
-Permite forçar uma atualização imediata de scores.
+Endpoint único que suporta tanto refresh quanto debug:
 
-**Requisição:**
+**Refresh - Forçar atualização:**
 ```
 POST /api/score/refresh-week
 Content-Type: application/json
@@ -38,48 +38,10 @@ Content-Type: application/json
 }
 ```
 
-**Resposta:**
-```json
-{
-  "success": true,
-  "week": 1,
-  "seasonYear": 2026,
-  "eventsCount": 3,
-  "result": {
-    "eventKeys": ["2026mitw", "2026ctin", "2026ctrip"],
-    "scoreSummary": {
-      "totalEvents": 3,
-      "calculatedEvents": 3,
-      "failedEvents": 0
-    },
-    "userSummary": {
-      "updatedUsers": 45
-    }
-  }
-}
+**Debug - Status completo:**
 ```
-
----
-
-### 3. **Endpoint de Debug** 🔍
-Arquivo: `api/score/debug.js` (NOVO)
-
-Mostra o status completo do sistema.
-
-**Requisição:**
+GET /api/score/refresh-week?action=debug
 ```
-GET /api/score/debug
-```
-
-**Mostra:**
-- Total de eventos do ano/semana
-- Quantos scores estão no banco
-- Top 5 scores classificados
-- Detalhes de cada evento
-
----
-
-### 4. **Logging Melhorado** 📝
 Arquivos modificados:
 - `api/score/top-week.js` 
 - `lib/server/scoringSync.js` (cron.js)
@@ -166,7 +128,7 @@ Adicionado botão "ATUALIZAR" discreto ao lado do título "EQUIPES QUE MAIS PONT
 ```
 
 ### 2️⃣ **Teste Manual** (5 min)
-1. Abra: `http://localhost:5173/api/score/debug`
+1. Abra: `http://localhost:5173/api/score/refresh-week?action=debug`
 2. Procure por `scoresThisWeek` - deve ser > 0
 3. Se for 0, clique em "ATUALIZAR" na home
 4. Aguarde 5 segundos
@@ -186,7 +148,7 @@ Veja o terminal onde a app roda. Procure por linhas que começam com:
 
 ### Problema: Nenhuma equipe aparece
 **→ Solução:**
-1. Verifique `/api/score/debug`
+1. Verifique `/api/score/refresh-week?action=debug`
 2. Se `scoresThisWeek: 0`, clique ATUALIZAR
 3. Se ainda for 0, verifique `.env` (TBA_KEY)
 
@@ -210,8 +172,7 @@ Veja o terminal onde a app roda. Procure por linhas que começam com:
 | Arquivo | Função |
 |---------|--------|
 | `src/DataBase/jobs/cron.js` | Atualização automática a cada 5 min |
-| `api/score/refresh-week.js` | Endpoint de refresh manual |
-| `api/score/debug.js` | Endpoint de debug |
+| `api/score/refresh-week.js` | Endpoint de refresh + debug (combinado) |
 | `api/score/top-week.js` (modificado) | Melhor logging |
 | `src/containers/home/index.jsx` (modificado) | Botão de refresh + handleRefresh |
 | `test-scores.ps1` | Script de teste automático |

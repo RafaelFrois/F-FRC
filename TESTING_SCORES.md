@@ -6,7 +6,7 @@ Você implementou com sucesso o sistema automático de atualização de scores! 
 
 ### 1. **Debug - Visualizar Status Completo** (mais importante!)
 ```
-GET /api/score/debug
+GET /api/score/refresh-week?action=debug
 ```
 Este endpoint mostra:
 - Total de eventos do ano/semana
@@ -16,7 +16,7 @@ Este endpoint mostra:
 
 **Como usar no navegador:**
 ```
-http://localhost:5173/api/score/debug
+http://localhost:5173/api/score/refresh-week?action=debug
 ```
 
 Este é o **primeiro lugar para investigar** se não há equipes aparecendo.
@@ -73,7 +73,7 @@ http://localhost:5173/api/score/top-week?week=1
 
 ### Passo 1: Verifica se há eventos
 ```
-Acesse: /api/score/debug
+Acesse: /api/score/refresh-week?action=debug
 Procure por: "eventsThisWeek" e "events"
 ```
 **❌ Se disser 0 eventos:**
@@ -83,12 +83,12 @@ Procure por: "eventsThisWeek" e "events"
 
 ### Passo 2: Verifica se há scores no banco
 ```
-No /api/score/debug procure por: "scoresThisWeek" e "topScores"
+No /api/score/refresh-week?action=debug procure por: "scoresThisWeek" e "topScores"
 ```
 **❌ Se disser 0 scores:**
 - Clique em "ATUALIZAR" na home
 - Aguarde 5-10 segundos
-- Volte ao /api/score/debug
+- Volte ao /api/score/refresh-week?action=debug
 - Se ainda for 0, veja o passo 3
 
 ### Passo 3: Verifica os logs do servidor
@@ -115,7 +115,7 @@ Abra DevTools (F12) → Console
 
 ## 📊 Checklist de Verificação
 
-- [ ] Acessei `/api/score/debug` e vi eventos
+- [ ] Acessei `/api/score/refresh-week?action=debug` e vi eventos
 - [ ] Vi scores no database (scoresThisWeek > 0)
 - [ ] Cliquei em "ATUALIZAR" na home
 - [ ] Equipas aparecem agora?

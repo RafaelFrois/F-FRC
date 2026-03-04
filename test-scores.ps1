@@ -16,7 +16,7 @@ Write-Host "📊 TESTE 1: Verificando Status do Sistema (Debug)" -ForegroundColo
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`n" -ForegroundColor Blue
 
 try {
-    $debugUrl = "$BaseUrl/api/score/debug"
+    $debugUrl = "$BaseUrl/api/score/refresh-week?action=debug"
     Write-Host "GET $debugUrl" -ForegroundColor Gray
     
     $debugResponse = Invoke-WebRequest -Uri $debugUrl -Method GET -ContentType "application/json" -ErrorAction Stop
