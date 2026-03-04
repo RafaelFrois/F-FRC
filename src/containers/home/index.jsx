@@ -484,7 +484,7 @@ export default function Dashboard() {
     setIsRefreshing(true);
     try {
       const week = calculateCurrentWeek();
-      const response = await fetch(`/api/score/refresh-week`, {
+      const response = await fetch(`/api/score/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ week, force: true })
