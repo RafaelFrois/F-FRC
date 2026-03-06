@@ -213,6 +213,23 @@ const TeamTopEvent = styled.div`
   min-height: 32px;
 `;
 
+const TeamTopDetailsButton = styled.button`
+  margin-top: 10px;
+  padding: 8px 12px;
+  border: 1px solid #dbe7ff;
+  border-radius: 8px;
+  background: #f3f8ff;
+  color: #1a4b94;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+
+  &:hover {
+    background: #e9f2ff;
+  }
+`;
+
 const MostChosenPanel = styled(TopWeekPanel)`
   margin-top: 0;
 `;
@@ -459,6 +476,10 @@ export default function Dashboard() {
     navigate('/entenda-o-jogo');
   };
 
+  const handleTeamDetails = () => {
+    alert('Este recurso ainda está em desenvolvimento');
+  };
+
   const handleDeleteAlliance = async (eventKey, regionName) => {
     const confirmed = window.confirm(
       `Deseja excluir a aliança do regional ${regionName || eventKey}?`
@@ -563,6 +584,7 @@ export default function Dashboard() {
                     <TeamTopNumber>{team ? `#${team.teamNumber}` : '---'}</TeamTopNumber>
                     <TeamTopPoints>{team ? Number(team.points).toFixed(2) : (isTopWeekLoading ? '...' : '---')}</TeamTopPoints>
                     <TeamTopEvent>{team?.eventName || (isTopWeekLoading ? 'Buscando eventos em andamento...' : 'Evento indisponível')}</TeamTopEvent>
+                    <TeamTopDetailsButton onClick={handleTeamDetails}>VER DETALHES</TeamTopDetailsButton>
                   </TeamTopCard>
                 );
               })}
