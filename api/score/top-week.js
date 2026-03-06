@@ -5,6 +5,144 @@ import { getTeamsByEvent } from "../../src/DataBase/services/tba.services.js";
 import { methodNotAllowed, setCors, handleOptions } from "../../lib/server/http.js";
 import { ensureWeekScoresFresh, getCurrentWeek, getWeekEvents } from "../../lib/server/scoringSync.js";
 
+const WIN_POINTS = 2;
+const TIE_POINTS = 1;
+const LOSS_POINTS = -2;
+const PENALTY_PER_OCCURRENCE = -3;
+const YELLOW_CARD_POINTS = -6;
+const RED_CARD_POINTS = -15;
+
+function asNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function roundTo(value, places = 2) {
+  const factor = 10 ** places;
+  return Math.round(asNumber(value) * factor) / factor;
+}
+
+function buildScoreDetails(row = {}) {
+  const autoEPA = asNumber(row.autoEPA);
+  const teleopEPA = asNumber(row.teleopEPA);
+  const endgameEPA = asNumber(row.endgameEPA);
+
+  const wins = asNumber(row.wins, 0);
+  const ties = asNumber(row.ties, 0);
+  const losses = asNumber(row.losses, 0);
+  const foulCount = asNumber(row.foulCount, 0);
+  const techFoulCount = asNumber(row.techFoulCount, 0);
+  const yellowCards = asNumber(row.yellowCards, 0);
+  const redCards = asNumber(row.redCards, 0);
+
+  const penaltyCount = foulCount + techFoulCount;
+
+  const bonusAutoPoints = asNumber(row.bonusAutoPoints, 0);
+  const bonusTeleopPoints = asNumber(row.bonusTeleopPoints, 0);
+  const bonusEndgamePoints = asNumber(row.bonusEndgamePoints, 0);
+  const fallbackBonusPoints = asNumber(row.bonusPoints, 0);
+
+  const items = [
+    {
+      id: "teleop-epa",
+      label: "Teleop EPA",
+      amount: roundTo(teleopEPA),
+      points: roundTo(asNumber(row.teleopPoints, 0))
+    },
+    {
+      id: "endgame-epa",
+      label: "EndGame EPA",
+      amount: roundTo(endgameEPA),
+      points: roundTo(asNumber(row.endgamePoints, 0))
+    },
+    {
+      id: "auto-epa",
+      label: "Auto EPA",
+      amount: roundTo(autoEPA),
+      points: roundTo(asNumber(row.autoPoints, 0))
+    },
+    {
+      id: "fouls",
+      label: "Penalidades Cometidas",
+      amount: penaltyCount,
+      points: roundTo(penaltyCount * PENALTY_PER_OCCURRENCE)
+    },
+    {
+      id: "losses",
+      label: "Derrotas",
+      amount: losses,
+      points: roundTo(losses * LOSS_POINTS)
+    },
+    {
+      id: "red-cards",
+      label: "Red Card",
+      amount: redCards,
+      points: roundTo(redCards * RED_CARD_POINTS)
+    },
+    {
+      id: "yellow-cards",
+      label: "Yellow Card",
+      amount: yellowCards,
+      points: roundTo(yellowCards * YELLOW_CARD_POINTS)
+    },
+    {
+      id: "ties",
+      label: "Empates",
+      amount: ties,
+      points: roundTo(ties * TIE_POINTS)
+    },
+    {
+      id: "wins",
+      label: "Vitorias",
+      amount: wins,
+      points: roundTo(wins * WIN_POINTS)
+    },
+    {
+      id: "best-auto-epa",
+      label: "Melhor Auto EPA do Evento",
+      amount: roundTo(autoEPA),
+      points: roundTo(bonusAutoPoints),
+      showWhen: bonusAutoPoints !== 0
+    },
+    {
+      id: "best-teleop-epa",
+      label: "Melhor Teleop EPA do Evento",
+      amount: roundTo(teleopEPA),
+      points: roundTo(bonusTeleopPoints),
+      showWhen: bonusTeleopPoints !== 0
+    },
+    {
+      id: "best-endgame-epa",
+      label: "Melhor EndGame EPA do Evento",
+      amount: roundTo(endgameEPA),
+      points: roundTo(bonusEndgamePoints),
+      showWhen: bonusEndgamePoints !== 0
+    }
+  ].filter((entry) => {
+    if (entry.showWhen === false) return false;
+    return asNumber(entry.amount, 0) !== 0;
+  });
+
+  const hasDetailedBonusFields =
+    bonusAutoPoints !== 0 ||
+    bonusTeleopPoints !== 0 ||
+    bonusEndgamePoints !== 0;
+
+  if (!hasDetailedBonusFields && fallbackBonusPoints !== 0) {
+    items.push({
+      id: "event-bonus",
+      label: "Bonus EPA do Evento",
+      amount: 1,
+      points: roundTo(fallbackBonusPoints)
+    });
+  }
+
+  return {
+    items,
+    totalPoints: roundTo(asNumber(row.totalPoints, 0))
+  };
+}
+
 function parseTeamNumber(teamKey) {
   const digits = String(teamKey || "").replace(/[^0-9]/g, "");
   const number = Number(digits);
@@ -208,7 +346,8 @@ export default async function handler(req, res) {
         teamName: teamName || `TEAM ${teamNumber}`,
         points: Number(row.totalPoints || 0),
         eventKey,
-        eventName: String(event?.name || eventKey)
+        eventName: String(event?.name || eventKey),
+        scoreDetails: buildScoreDetails(row)
       });
     }
 

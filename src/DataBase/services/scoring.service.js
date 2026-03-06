@@ -261,6 +261,9 @@ export async function calculateEventScores(eventKey) {
       Number(matchStats.yellowCards || 0) * YELLOW_CARD_POINTS +
       Number(matchStats.redCards || 0) * RED_CARD_POINTS;
 
+    const bonusAutoPoints = teamKey === topAutoEligibleTeam ? BONUS_AUTO_EPA : 0;
+    const bonusTeleopPoints = teamKey === topTeleopEligibleTeam ? BONUS_TELEOP_EPA : 0;
+    const bonusEndgamePoints = teamKey === topEndgameEligibleTeam ? BONUS_ENDGAME_EPA : 0;
     const bonusPoints = Number(bonusByTeam.get(teamKey) || 0);
     const totalPoints = autoPoints + teleopPoints + endgamePoints + winPoints + penaltyPoints + bonusPoints;
 
@@ -281,6 +284,9 @@ export async function calculateEventScores(eventKey) {
       autoPoints,
       teleopPoints,
       endgamePoints,
+      bonusAutoPoints,
+      bonusTeleopPoints,
+      bonusEndgamePoints,
       winPoints,
       penaltyPoints,
       bonusPoints,

@@ -230,6 +230,146 @@ const TeamTopDetailsButton = styled.button`
   }
 `;
 
+const DetailsOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  z-index: 3000;
+`;
+
+const DetailsCard = styled.div`
+  width: min(640px, 100%);
+  max-height: calc(100vh - 36px);
+  overflow: auto;
+  background: #f2f2f2;
+  border-radius: 10px;
+  border: 1px solid #d4d4d4;
+  padding: 24px 18px 16px;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.25);
+`;
+
+const DetailsTopBar = styled.div`
+  display: flex;
+  justify-content: flex-end;
+`;
+
+const DetailsCloseButton = styled.button`
+  background: transparent;
+  border: none;
+  color: #333;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+`;
+
+const DetailsLogo = styled.img`
+  width: 190px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  object-fit: contain;
+`;
+
+const DetailsTeamName = styled.div`
+  margin-top: 8px;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 800;
+  color: #1f1f1f;
+  text-transform: uppercase;
+`;
+
+const DetailsTeamMeta = styled.div`
+  margin-top: 4px;
+  text-align: center;
+  font-size: 14px;
+  color: #444;
+  text-transform: uppercase;
+`;
+
+const DetailsList = styled.div`
+  margin: 20px auto 0;
+  width: min(430px, 100%);
+`;
+
+const DetailsRow = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: baseline;
+  padding: 2px 0;
+`;
+
+const DetailsLabel = styled.div`
+  font-size: 33px;
+  color: #111;
+
+  @media (max-width: 768px) {
+    font-size: 24px;
+  }
+`;
+
+const DetailsAmount = styled.div`
+  font-size: 33px;
+  color: #111;
+
+  @media (max-width: 768px) {
+    font-size: 24px;
+  }
+`;
+
+const DetailsEq = styled.div`
+  font-size: 33px;
+  color: #111;
+
+  @media (max-width: 768px) {
+    font-size: 24px;
+  }
+`;
+
+const DetailsPoints = styled.div`
+  font-size: 33px;
+  color: ${(props) => (props.$negative ? '#d40000' : '#00c21a')};
+  font-weight: 700;
+  text-align: right;
+
+  @media (max-width: 768px) {
+    font-size: 24px;
+  }
+`;
+
+const DetailsDivider = styled.hr`
+  border: none;
+  border-top: 1px solid #c8c8c8;
+  margin: 16px 0;
+`;
+
+const DetailsTotalLabel = styled.div`
+  text-align: center;
+  font-size: 40px;
+  color: #111;
+  font-weight: 700;
+
+  @media (max-width: 768px) {
+    font-size: 30px;
+  }
+`;
+
+const DetailsTotalValue = styled.div`
+  text-align: center;
+  font-size: 44px;
+  color: #00c21a;
+  font-weight: 800;
+
+  @media (max-width: 768px) {
+    font-size: 34px;
+  }
+`;
+
 const MostChosenPanel = styled(TopWeekPanel)`
   margin-top: 0;
 `;
@@ -353,6 +493,7 @@ export default function Dashboard() {
   const [isTopWeekLoading, setIsTopWeekLoading] = useState(true);
   const [mostChosenTeams, setMostChosenTeams] = useState([]);
   const [isMostChosenLoading, setIsMostChosenLoading] = useState(true);
+  const [selectedTopTeam, setSelectedTopTeam] = useState(null);
 
   function calculateCurrentWeek() {
     const seasonYear = new Date().getFullYear();
@@ -476,8 +617,27 @@ export default function Dashboard() {
     navigate('/entenda-o-jogo');
   };
 
-  const handleTeamDetails = () => {
-    alert('Este recurso ainda está em desenvolvimento');
+  const handleTeamDetails = (team) => {
+    if (!team) return;
+    setSelectedTopTeam(team);
+  };
+
+  const closeTeamDetails = () => {
+    setSelectedTopTeam(null);
+  };
+
+  const formatDetailNumber = (value) => {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return '0';
+    if (Number.isInteger(n)) return String(n);
+    return n.toFixed(2);
+  };
+
+  const formatSignedPoints = (value) => {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return '0.00';
+    if (n > 0) return `+${n.toFixed(2)}`;
+    return n.toFixed(2);
   };
 
   const handleDeleteAlliance = async (eventKey, regionName) => {
@@ -584,7 +744,7 @@ export default function Dashboard() {
                     <TeamTopNumber>{team ? `#${team.teamNumber}` : '---'}</TeamTopNumber>
                     <TeamTopPoints>{team ? Number(team.points).toFixed(2) : (isTopWeekLoading ? '...' : '---')}</TeamTopPoints>
                     <TeamTopEvent>{team?.eventName || (isTopWeekLoading ? 'Buscando eventos em andamento...' : 'Evento indisponível')}</TeamTopEvent>
-                    <TeamTopDetailsButton onClick={handleTeamDetails}>VER DETALHES</TeamTopDetailsButton>
+                    <TeamTopDetailsButton onClick={() => handleTeamDetails(team)}>VER DETALHES</TeamTopDetailsButton>
                   </TeamTopCard>
                 );
               })}
@@ -625,6 +785,36 @@ export default function Dashboard() {
         </CenterColumn>
         </MainContent>
       </Container>
+
+      {selectedTopTeam && (
+        <DetailsOverlay onClick={closeTeamDetails}>
+          <DetailsCard onClick={(e) => e.stopPropagation()}>
+            <DetailsTopBar>
+              <DetailsCloseButton onClick={closeTeamDetails} aria-label="Fechar detalhes">×</DetailsCloseButton>
+            </DetailsTopBar>
+
+            <DetailsLogo src="/Logo-Principal-NoBG.png" alt="Team logo" />
+            <DetailsTeamName>{selectedTopTeam.teamName}</DetailsTeamName>
+            <DetailsTeamMeta>{`${selectedTopTeam.eventName} #${selectedTopTeam.teamNumber}`}</DetailsTeamMeta>
+
+            <DetailsList>
+              {(selectedTopTeam.scoreDetails?.items || []).map((item) => (
+                <DetailsRow key={item.id}>
+                  <DetailsLabel>{`${item.label}: ${formatDetailNumber(item.amount)}`}</DetailsLabel>
+                  <DetailsEq>=</DetailsEq>
+                  <DetailsPoints $negative={Number(item.points) < 0}>{formatSignedPoints(item.points)}</DetailsPoints>
+                </DetailsRow>
+              ))}
+            </DetailsList>
+
+            <DetailsDivider />
+            <DetailsTotalLabel>TOTAL</DetailsTotalLabel>
+            <DetailsTotalValue>
+              {formatSignedPoints(selectedTopTeam.scoreDetails?.totalPoints ?? selectedTopTeam.points)}
+            </DetailsTotalValue>
+          </DetailsCard>
+        </DetailsOverlay>
+      )}
     </FullPage>
   );
 }
