@@ -172,21 +172,21 @@ const DetailsOverlay = styled.div`
 
 const DetailsModal = styled.div`
   width: min(900px, 100%);
-  max-height: calc(100vh - 28px);
+  max-height: calc(100vh - 10px);
   overflow: auto;
   background: #ececec;
   border-radius: 8px;
   border: 1px solid #d4d4d4;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
-  padding: 14px 14px 18px;
+  padding: 10px 12px 14px;
 
   @media (max-width: 900px) {
     width: min(720px, 100%);
   }
 
   @media (max-width: 600px) {
-    padding: 10px 10px 14px;
-    max-height: calc(100vh - 14px);
+    padding: 8px 8px 10px;
+    max-height: calc(100vh - 6px);
   }
 `;
 
@@ -194,11 +194,11 @@ const DetailsHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 `;
 
 const DetailsTitle = styled.div`
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: #333;
   text-transform: uppercase;
@@ -217,7 +217,7 @@ const DetailsClose = styled.button`
 const DetailsTeamsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
   align-items: start;
 
   @media (max-width: 680px) {
@@ -228,54 +228,54 @@ const DetailsTeamsGrid = styled.div`
 
 const DetailsTeamCard = styled.div`
   text-align: center;
-  padding: 8px 6px;
+  padding: 6px 4px;
 `;
 
 const DetailsTeamLogo = styled.div`
-  width: 92px;
-  height: 92px;
+  width: 78px;
+  height: 78px;
   border-radius: 50%;
-  margin: 0 auto 8px;
+  margin: 0 auto 6px;
   background-size: cover;
   background-position: center;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-size: 30px;
+  font-size: 24px;
   font-weight: 800;
 `;
 
 const DetailsTeamName = styled.div`
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
   color: #111;
   text-transform: uppercase;
-  min-height: 32px;
+  min-height: 24px;
 `;
 
 const DetailsTeamNumber = styled.div`
-  font-size: 12px;
+  font-size: 11px;
   color: #222;
   margin-top: 2px;
 `;
 
 const CaptainChip = styled.span`
   display: inline-block;
-  margin-top: 8px;
-  padding: 4px 10px;
+  margin-top: 6px;
+  padding: 3px 8px;
   border-radius: 999px;
   background: #ff5b00;
   color: #fff;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 `;
 
 const DetailsScoreGrid = styled.div`
-  margin-top: 14px;
+  margin-top: 8px;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
 
   @media (max-width: 680px) {
     grid-template-columns: 1fr;
@@ -285,24 +285,24 @@ const DetailsScoreGrid = styled.div`
 
 const DetailsScoreItem = styled.div`
   text-align: center;
-  min-height: 66px;
+  min-height: 50px;
 `;
 
 const DetailsScoreLabel = styled.div`
-  font-size: 13px;
+  font-size: 11px;
   color: #222;
   text-transform: uppercase;
 `;
 
 const DetailsScoreBase = styled.div`
-  font-size: 26px;
+  font-size: 20px;
   color: #00b81f;
   font-weight: 700;
   line-height: 1.1;
 `;
 
 const DetailsScoreBoosted = styled.div`
-  font-size: 24px;
+  font-size: 18px;
   color: #ff5b00;
   font-weight: 700;
   line-height: 1.1;
@@ -311,19 +311,19 @@ const DetailsScoreBoosted = styled.div`
 const DetailsDivider = styled.hr`
   border: none;
   border-top: 1px solid #cfcfcf;
-  margin: 12px 0 10px;
+  margin: 8px 0 8px;
 `;
 
 const DetailsTotalLabel = styled.div`
   text-align: center;
-  font-size: 30px;
+  font-size: 24px;
   color: #111;
   text-transform: uppercase;
 `;
 
 const DetailsTotalValue = styled.div`
   text-align: center;
-  font-size: 36px;
+  font-size: 28px;
   color: #00b81f;
   font-weight: 800;
   line-height: 1;

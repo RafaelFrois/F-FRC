@@ -243,7 +243,7 @@ const DetailsOverlay = styled.div`
 
 const DetailsCard = styled.div`
   width: min(720px, 100%);
-  max-height: calc(100vh - 24px);
+  max-height: calc(100vh - 10px);
   overflow: auto;
   background: #f2f2f2;
   border-radius: 10px;
@@ -252,8 +252,8 @@ const DetailsCard = styled.div`
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.25);
 
   @media (max-width: 768px) {
-    padding: 16px 12px 14px;
-    max-height: calc(100vh - 12px);
+    padding: 12px 10px 12px;
+    max-height: calc(100vh - 6px);
   }
 `;
 
@@ -282,7 +282,7 @@ const DetailsLogo = styled.img`
 const DetailsTeamName = styled.div`
   margin-top: 8px;
   text-align: center;
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 800;
   color: #1f1f1f;
   text-transform: uppercase;
@@ -291,43 +291,43 @@ const DetailsTeamName = styled.div`
 const DetailsTeamMeta = styled.div`
   margin-top: 4px;
   text-align: center;
-  font-size: 14px;
+  font-size: 12px;
   color: #444;
   text-transform: uppercase;
 `;
 
 const DetailsList = styled.div`
-  margin: 20px auto 0;
+  margin: 12px auto 0;
   width: min(580px, 100%);
 
   @media (max-width: 768px) {
     width: 100%;
-    margin-top: 14px;
+    margin-top: 10px;
   }
 `;
 
 const DetailsRow = styled.div`
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(64px, 110px) 24px minmax(88px, 130px);
-  gap: 12px;
+  gap: 10px;
   align-items: center;
-  padding: 7px 0;
+  padding: 4px 0;
 
   @media (max-width: 768px) {
     grid-template-columns: minmax(0, 1fr) minmax(52px, 82px) 18px minmax(72px, 100px);
     gap: 8px;
-    padding: 6px 0;
+    padding: 3px 0;
   }
 `;
 
 const DetailsLabel = styled.div`
-  font-size: clamp(18px, 2.6vw, 33px);
+  font-size: clamp(14px, 2.1vw, 24px);
   color: #111;
   line-height: 1.15;
 `;
 
 const DetailsAmount = styled.div`
-  font-size: clamp(18px, 2.6vw, 33px);
+  font-size: clamp(14px, 2.1vw, 24px);
   color: #111;
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -335,14 +335,14 @@ const DetailsAmount = styled.div`
 `;
 
 const DetailsEq = styled.div`
-  font-size: clamp(18px, 2.6vw, 33px);
+  font-size: clamp(14px, 2.1vw, 24px);
   color: #111;
   text-align: center;
   line-height: 1.15;
 `;
 
 const DetailsPoints = styled.div`
-  font-size: clamp(18px, 2.6vw, 33px);
+  font-size: clamp(14px, 2.1vw, 24px);
   color: ${(props) => (props.$negative ? '#d40000' : '#00c21a')};
   font-weight: 700;
   text-align: right;
@@ -353,19 +353,19 @@ const DetailsPoints = styled.div`
 const DetailsDivider = styled.hr`
   border: none;
   border-top: 1px solid #c8c8c8;
-  margin: 16px 0;
+  margin: 10px 0;
 `;
 
 const DetailsTotalLabel = styled.div`
   text-align: center;
-  font-size: clamp(24px, 4.2vw, 40px);
+  font-size: clamp(18px, 3.4vw, 30px);
   color: #111;
   font-weight: 700;
 `;
 
 const DetailsTotalValue = styled.div`
   text-align: center;
-  font-size: clamp(28px, 4.8vw, 44px);
+  font-size: clamp(20px, 3.8vw, 32px);
   color: #00c21a;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
