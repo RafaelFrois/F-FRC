@@ -2,7 +2,7 @@ import axios from "axios";
 import { getEventOprs, getTeamEventsByYear } from "./tba.services.js";
 
 const STATBOTICS_BASE_URL = process.env.STATBOTICS_BASE_URL || "https://api.statbotics.io/v3";
-const REQUEST_TIMEOUT_MS = Number(process.env.STATBOTICS_TIMEOUT_MS || 12000);
+const REQUEST_TIMEOUT_MS = Number(process.env.STATBOTICS_TIMEOUT_MS || 30000);
 
 const client = axios.create({
   baseURL: STATBOTICS_BASE_URL,
@@ -62,13 +62,24 @@ function parseEventType(rawEvent = {}) {
 
 function extractTeamEventEPA(payload = {}) {
   const epa = payload.epa || payload.team_epa || {};
+  const breakdown = epa.breakdown || {};
   const totalEPA = normalizeEPAValue(
-    payload.total_epa ?? epa.total ?? epa.norm ?? epa.end ?? payload.epa_total,
+    payload.total_epa ??
+      payload.team_epa ??
+      epa.norm ??
+      epa.unitless ??
+      epa.total ??
+      epa.end ??
+      epa?.total_points?.mean ??
+      payload.epa_total,
     0
   );
-  const autoEPA = normalizeEPAValue(payload.auto_epa ?? epa.auto ?? 0, 0);
-  const teleopEPA = normalizeEPAValue(payload.teleop_epa ?? epa.teleop ?? 0, 0);
-  const endgameEPA = normalizeEPAValue(payload.endgame_epa ?? epa.endgame ?? epa.end_game ?? 0, 0);
+  const autoEPA = normalizeEPAValue(payload.auto_epa ?? epa.auto ?? breakdown.auto_points ?? 0, 0);
+  const teleopEPA = normalizeEPAValue(payload.teleop_epa ?? epa.teleop ?? breakdown.teleop_points ?? 0, 0);
+  const endgameEPA = normalizeEPAValue(
+    payload.endgame_epa ?? epa.endgame ?? epa.end_game ?? breakdown.endgame_points ?? 0,
+    0
+  );
 
   return { totalEPA, autoEPA, teleopEPA, endgameEPA };
 }
@@ -406,16 +417,30 @@ function extractTeamKeyFromEventEntry(entry = {}) {
 
 function extractEventTeamEPA(entry = {}) {
   const epa = entry.epa || entry.team_epa || {};
+  const breakdown = epa.breakdown || {};
   const norm = entry.norm_epa || {};
 
   const event_epa = normalizeEPAValue(
-    entry.event_epa ?? entry.total_epa ?? entry.team_epa ?? epa.total ?? epa.norm ?? epa.end ?? norm.current ?? norm.mean ?? 0,
+    entry.event_epa ??
+      entry.total_epa ??
+      entry.team_epa ??
+      epa.norm ??
+      epa.unitless ??
+      epa.total ??
+      epa.end ??
+      epa?.total_points?.mean ??
+      norm.current ??
+      norm.mean ??
+      0,
     0
   );
 
-  const auto_epa = normalizeEPAValue(entry.auto_epa ?? epa.auto ?? 0, 0);
-  const teleop_epa = normalizeEPAValue(entry.teleop_epa ?? epa.teleop ?? 0, 0);
-  const endgame_epa = normalizeEPAValue(entry.endgame_epa ?? epa.endgame ?? epa.end_game ?? 0, 0);
+  const auto_epa = normalizeEPAValue(entry.auto_epa ?? epa.auto ?? breakdown.auto_points ?? 0, 0);
+  const teleop_epa = normalizeEPAValue(entry.teleop_epa ?? epa.teleop ?? breakdown.teleop_points ?? 0, 0);
+  const endgame_epa = normalizeEPAValue(
+    entry.endgame_epa ?? epa.endgame ?? epa.end_game ?? breakdown.endgame_points ?? 0,
+    0
+  );
 
   return {
     event_epa,
@@ -426,29 +451,29 @@ function extractEventTeamEPA(entry = {}) {
 }
 
 async function fetchEventEpaRows(eventKey) {
-  const endpoints = [
-    `/event/${eventKey}/teams`,
-    `/event_teams/${eventKey}`,
-    `/event/${eventKey}/team_epas`
-  ];
+  const rows = [];
+  const pageSize = 250;
 
-  let lastError = null;
-  for (const endpoint of endpoints) {
-    try {
-      const payload = await request(endpoint);
-      if (Array.isArray(payload)) return payload;
-      if (Array.isArray(payload?.teams)) return payload.teams;
-      if (Array.isArray(payload?.data)) return payload.data;
-    } catch (error) {
-      lastError = error;
+  for (let page = 0; page < 20; page += 1) {
+    const offset = page * pageSize;
+    const payload = await request("/team_events", {
+      event: eventKey,
+      limit: pageSize,
+      offset
+    });
+
+    if (!Array.isArray(payload) || payload.length === 0) {
+      break;
+    }
+
+    rows.push(...payload);
+
+    if (payload.length < pageSize) {
+      break;
     }
   }
 
-  if (lastError) {
-    throw lastError;
-  }
-
-  return [];
+  return rows;
 }
 
 export async function getEventEPAByTeam(eventKey) {

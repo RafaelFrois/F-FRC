@@ -22,6 +22,10 @@ const BONUS_AUTO_EPA = 4;
 const BONUS_TELEOP_EPA = 4;
 const BONUS_ENDGAME_EPA = 4;
 
+const EVENT_TEAMS_TIMEOUT_MS = Number(process.env.SCORING_TEAMS_TIMEOUT_MS || 10000);
+const EVENT_MATCH_STATS_TIMEOUT_MS = Number(process.env.SCORING_MATCH_TIMEOUT_MS || 10000);
+const EVENT_EPA_TIMEOUT_MS = Number(process.env.SCORING_EPA_TIMEOUT_MS || 30000);
+
 const SCORE_CACHE_TTL_MS = Number(process.env.SCORING_EVENT_CACHE_TTL_MS || 5 * 60 * 1000);
 const eventRuntimeCache = new Map();
 
@@ -92,15 +96,15 @@ async function getEventDataset(eventKey) {
   };
 
   const [teams, matchStatsByTeam, eventEpaResult] = await Promise.allSettled([
-    withTimeout(getEventTeams(normalizedEventKey), 8000, "teams").catch(err => {
+    withTimeout(getEventTeams(normalizedEventKey), EVENT_TEAMS_TIMEOUT_MS, "teams").catch(err => {
       console.warn(`⚠️ Falha ao puxar teams para ${normalizedEventKey}: ${err.message}`);
       return [];
     }),
-    withTimeout(getEventMatchStats(normalizedEventKey), 8000, "match stats").catch(err => {
+    withTimeout(getEventMatchStats(normalizedEventKey), EVENT_MATCH_STATS_TIMEOUT_MS, "match stats").catch(err => {
       console.warn(`⚠️ Falha ao puxar match stats para ${normalizedEventKey}: ${err.message}`);
       return new Map();
     }),
-    withTimeout(getEventEPAByTeam(normalizedEventKey), 8000, "EPA").catch(err => {
+    withTimeout(getEventEPAByTeam(normalizedEventKey), EVENT_EPA_TIMEOUT_MS, "EPA").catch(err => {
       console.warn(`⚠️ Falha ao puxar EPA de Statbotics para ${normalizedEventKey}: ${err.message}. Continuando sem EPA.`);
       return new Map();
     })
@@ -263,6 +267,17 @@ export async function calculateEventScores(eventKey) {
     scoreDocs.push({
       team_key: teamKey,
       event_key: normalizedEventKey,
+      qualificationMatches: Number(matchStats.qualificationMatches || 0),
+      wins: Number(matchStats.wins || 0),
+      losses: Number(matchStats.losses || 0),
+      ties: Number(matchStats.ties || 0),
+      foulCount: Number(matchStats.foulCount || 0),
+      techFoulCount: Number(matchStats.techFoulCount || 0),
+      yellowCards: Number(matchStats.yellowCards || 0),
+      redCards: Number(matchStats.redCards || 0),
+      autoEPA: Number(epa.auto_epa || 0),
+      teleopEPA: Number(epa.teleop_epa || 0),
+      endgameEPA: Number(epa.endgame_epa || 0),
       autoPoints,
       teleopPoints,
       endgamePoints,
