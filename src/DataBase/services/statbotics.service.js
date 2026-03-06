@@ -25,7 +25,15 @@ function toNumber(value, fallback = 0) {
 function normalizeEPAValue(value, fallback = 0) {
   const parsed = toNumber(value, fallback);
   if (!Number.isFinite(parsed)) return fallback;
-  return parsed > 200 ? parsed / 10000 : parsed;
+
+  // Statbotics can return EPA values scaled in centi-units (e.g. 1866 => 18.66).
+  // Scale down iteratively to keep values in the expected EPA range.
+  let normalized = parsed;
+  while (Math.abs(normalized) > 200) {
+    normalized /= 100;
+  }
+
+  return normalized;
 }
 
 function normalizeString(value) {
@@ -255,7 +263,7 @@ export async function getLastOfficialTeamEvents(teamNumber, year = getCurrentSea
   const current = normalizeEPAValue(norm.current ?? norm.mean ?? norm.recent, recent);
   const mean = normalizeEPAValue(norm.mean ?? norm.current ?? norm.recent, current);
 
-  const toOprLike = (value) => value > 0 ? value * 170 : 0;
+  const toOprLike = (value) => value > 0 ? value * 1.7 : 0;
 
   const bestSignal = recent || current || mean;
   if (bestSignal <= 0) {
