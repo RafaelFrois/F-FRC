@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 
@@ -159,6 +159,176 @@ const DeleteButton = styled.button`
   cursor: pointer;
 `;
 
+const DetailsOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 3200;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+`;
+
+const DetailsModal = styled.div`
+  width: min(900px, 100%);
+  max-height: calc(100vh - 28px);
+  overflow: auto;
+  background: #ececec;
+  border-radius: 8px;
+  border: 1px solid #d4d4d4;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+  padding: 14px 14px 18px;
+
+  @media (max-width: 900px) {
+    width: min(720px, 100%);
+  }
+
+  @media (max-width: 600px) {
+    padding: 10px 10px 14px;
+    max-height: calc(100vh - 14px);
+  }
+`;
+
+const DetailsHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+`;
+
+const DetailsTitle = styled.div`
+  font-size: 13px;
+  font-weight: 700;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+`;
+
+const DetailsClose = styled.button`
+  border: none;
+  background: transparent;
+  color: #333;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+`;
+
+const DetailsTeamsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+
+  @media (max-width: 680px) {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+`;
+
+const DetailsTeamCard = styled.div`
+  text-align: center;
+  padding: 8px 6px;
+`;
+
+const DetailsTeamLogo = styled.div`
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  margin: 0 auto 8px;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 30px;
+  font-weight: 800;
+`;
+
+const DetailsTeamName = styled.div`
+  font-size: 13px;
+  font-weight: 700;
+  color: #111;
+  text-transform: uppercase;
+  min-height: 32px;
+`;
+
+const DetailsTeamNumber = styled.div`
+  font-size: 12px;
+  color: #222;
+  margin-top: 2px;
+`;
+
+const CaptainChip = styled.span`
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #ff5b00;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+`;
+
+const DetailsScoreGrid = styled.div`
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+
+  @media (max-width: 680px) {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+`;
+
+const DetailsScoreItem = styled.div`
+  text-align: center;
+  min-height: 66px;
+`;
+
+const DetailsScoreLabel = styled.div`
+  font-size: 13px;
+  color: #222;
+  text-transform: uppercase;
+`;
+
+const DetailsScoreBase = styled.div`
+  font-size: 26px;
+  color: #00b81f;
+  font-weight: 700;
+  line-height: 1.1;
+`;
+
+const DetailsScoreBoosted = styled.div`
+  font-size: 24px;
+  color: #ff5b00;
+  font-weight: 700;
+  line-height: 1.1;
+`;
+
+const DetailsDivider = styled.hr`
+  border: none;
+  border-top: 1px solid #cfcfcf;
+  margin: 12px 0 10px;
+`;
+
+const DetailsTotalLabel = styled.div`
+  text-align: center;
+  font-size: 30px;
+  color: #111;
+  text-transform: uppercase;
+`;
+
+const DetailsTotalValue = styled.div`
+  text-align: center;
+  font-size: 36px;
+  color: #00b81f;
+  font-weight: 800;
+  line-height: 1;
+`;
+
 const getTeamColor = (teamNumber) => {
   const colors = ["#667eea", "#764ba2", "#f093fb", "#4facfe", "#0b5fa5", "#2ecc71"];
   return colors[teamNumber % colors.length];
@@ -196,6 +366,7 @@ export const AllianceCard = ({
   onDelete = null
 }) => {
   const navigate = useNavigate();
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   
   // Verificar se o evento começou
   const parsedEventStartDate = parseEventStartDate(eventStartDate);
@@ -207,6 +378,27 @@ export const AllianceCard = ({
     : 0;
   const hasTeamPoints = Array.isArray(teams) && teams.some((team) => team?.points !== undefined && team?.points !== null);
   const displayScore = hasTeamPoints ? summedAllianceScore : Number(totalScore || 0);
+
+  const allianceDetails = useMemo(() => {
+    const rows = (Array.isArray(teams) ? teams : []).map((team) => {
+      const basePoints = Number(team?.points || 0);
+      const isCaptain = Boolean(team?.isCaptain);
+      const multiplier = isCaptain ? 1.5 : 1;
+      const finalPoints = basePoints * multiplier;
+
+      return {
+        teamNumber: Number(team?.teamNumber || 0),
+        nickname: getDisplayTeamName(team),
+        isCaptain,
+        basePoints,
+        multiplier,
+        finalPoints
+      };
+    });
+
+    const total = rows.reduce((sum, row) => sum + Number(row.finalPoints || 0), 0);
+    return { rows, total };
+  }, [teams]);
   
   const handleEdit = () => {
     navigate(`/choose-alliance/${eventKey}`, {
@@ -224,7 +416,11 @@ export const AllianceCard = ({
   };
 
   const handleDetails = () => {
-    alert('Este recurso ainda está em desenvolvimento');
+    setShowDetailsModal(true);
+  };
+
+  const closeDetailsModal = () => {
+    setShowDetailsModal(false);
   };
   
   return (
@@ -272,6 +468,50 @@ export const AllianceCard = ({
           </ActionsWrap>
         )}
       </ScoreRow>
+
+      {showDetailsModal && (
+        <DetailsOverlay onClick={closeDetailsModal}>
+          <DetailsModal onClick={(e) => e.stopPropagation()}>
+            <DetailsHeader>
+              <DetailsTitle>Detalhes da Alianca</DetailsTitle>
+              <DetailsClose onClick={closeDetailsModal} aria-label="Fechar detalhes">x</DetailsClose>
+            </DetailsHeader>
+
+            <DetailsTeamsGrid>
+              {allianceDetails.rows.map((team, index) => (
+                <DetailsTeamCard key={`${team.teamNumber}-${index}`}>
+                  <DetailsTeamLogo style={{ background: getTeamColor(team.teamNumber) }}>
+                    {String(team.teamNumber || '').slice(-2)}
+                  </DetailsTeamLogo>
+                  <DetailsTeamName>{team.nickname}</DetailsTeamName>
+                  <DetailsTeamNumber>{`#${team.teamNumber || '---'}`}</DetailsTeamNumber>
+                  {team.isCaptain && <CaptainChip>1.5x</CaptainChip>}
+                </DetailsTeamCard>
+              ))}
+            </DetailsTeamsGrid>
+
+            <DetailsScoreGrid>
+              {allianceDetails.rows.map((team, index) => {
+                const showBoosted = team.isCaptain && team.multiplier > 1;
+
+                return (
+                  <DetailsScoreItem key={`score-${team.teamNumber}-${index}`}>
+                    <DetailsScoreLabel>Pontuacao</DetailsScoreLabel>
+                    <DetailsScoreBase>{Number(team.basePoints || 0).toFixed(2)}</DetailsScoreBase>
+                    {showBoosted && (
+                      <DetailsScoreBoosted>{Number(team.finalPoints || 0).toFixed(2)}</DetailsScoreBoosted>
+                    )}
+                  </DetailsScoreItem>
+                );
+              })}
+            </DetailsScoreGrid>
+
+            <DetailsDivider />
+            <DetailsTotalLabel>Total</DetailsTotalLabel>
+            <DetailsTotalValue>{Number(allianceDetails.total || 0).toFixed(2)}</DetailsTotalValue>
+          </DetailsModal>
+        </DetailsOverlay>
+      )}
     </Card>
   );
 };
