@@ -242,14 +242,19 @@ const DetailsOverlay = styled.div`
 `;
 
 const DetailsCard = styled.div`
-  width: min(640px, 100%);
-  max-height: calc(100vh - 36px);
+  width: min(720px, 100%);
+  max-height: calc(100vh - 24px);
   overflow: auto;
   background: #f2f2f2;
   border-radius: 10px;
   border: 1px solid #d4d4d4;
-  padding: 24px 18px 16px;
+  padding: 24px 22px 20px;
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.25);
+
+  @media (max-width: 768px) {
+    padding: 16px 12px 14px;
+    max-height: calc(100vh - 12px);
+  }
 `;
 
 const DetailsTopBar = styled.div`
@@ -293,53 +298,56 @@ const DetailsTeamMeta = styled.div`
 
 const DetailsList = styled.div`
   margin: 20px auto 0;
-  width: min(430px, 100%);
+  width: min(580px, 100%);
+
+  @media (max-width: 768px) {
+    width: 100%;
+    margin-top: 14px;
+  }
 `;
 
 const DetailsRow = styled.div`
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 10px;
-  align-items: baseline;
-  padding: 2px 0;
+  grid-template-columns: minmax(0, 1fr) minmax(64px, 110px) 24px minmax(88px, 130px);
+  gap: 12px;
+  align-items: center;
+  padding: 7px 0;
+
+  @media (max-width: 768px) {
+    grid-template-columns: minmax(0, 1fr) minmax(52px, 82px) 18px minmax(72px, 100px);
+    gap: 8px;
+    padding: 6px 0;
+  }
 `;
 
 const DetailsLabel = styled.div`
-  font-size: 33px;
+  font-size: clamp(18px, 2.6vw, 33px);
   color: #111;
-
-  @media (max-width: 768px) {
-    font-size: 24px;
-  }
+  line-height: 1.15;
 `;
 
 const DetailsAmount = styled.div`
-  font-size: 33px;
+  font-size: clamp(18px, 2.6vw, 33px);
   color: #111;
-
-  @media (max-width: 768px) {
-    font-size: 24px;
-  }
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
 `;
 
 const DetailsEq = styled.div`
-  font-size: 33px;
+  font-size: clamp(18px, 2.6vw, 33px);
   color: #111;
-
-  @media (max-width: 768px) {
-    font-size: 24px;
-  }
+  text-align: center;
+  line-height: 1.15;
 `;
 
 const DetailsPoints = styled.div`
-  font-size: 33px;
+  font-size: clamp(18px, 2.6vw, 33px);
   color: ${(props) => (props.$negative ? '#d40000' : '#00c21a')};
   font-weight: 700;
   text-align: right;
-
-  @media (max-width: 768px) {
-    font-size: 24px;
-  }
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
 `;
 
 const DetailsDivider = styled.hr`
@@ -350,24 +358,17 @@ const DetailsDivider = styled.hr`
 
 const DetailsTotalLabel = styled.div`
   text-align: center;
-  font-size: 40px;
+  font-size: clamp(24px, 4.2vw, 40px);
   color: #111;
   font-weight: 700;
-
-  @media (max-width: 768px) {
-    font-size: 30px;
-  }
 `;
 
 const DetailsTotalValue = styled.div`
   text-align: center;
-  font-size: 44px;
+  font-size: clamp(28px, 4.8vw, 44px);
   color: #00c21a;
   font-weight: 800;
-
-  @media (max-width: 768px) {
-    font-size: 34px;
-  }
+  font-variant-numeric: tabular-nums;
 `;
 
 const MostChosenPanel = styled(TopWeekPanel)`
@@ -800,7 +801,8 @@ export default function Dashboard() {
             <DetailsList>
               {(selectedTopTeam.scoreDetails?.items || []).map((item) => (
                 <DetailsRow key={item.id}>
-                  <DetailsLabel>{`${item.label}: ${formatDetailNumber(item.amount)}`}</DetailsLabel>
+                  <DetailsLabel>{`${item.label}:`}</DetailsLabel>
+                  <DetailsAmount>{formatDetailNumber(item.amount)}</DetailsAmount>
                   <DetailsEq>=</DetailsEq>
                   <DetailsPoints $negative={Number(item.points) < 0}>{formatSignedPoints(item.points)}</DetailsPoints>
                 </DetailsRow>
