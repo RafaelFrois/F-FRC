@@ -2,8 +2,8 @@ import connectMongo from "../config/mongo.js";
 import User from "../src/DataBase/models/Users.js";
 import { getUserIdFromRequest } from "../lib/server/auth.js";
 import { methodNotAllowed, parseJsonBody, setCors, handleOptions } from "../lib/server/http.js";
-import { ensureUserSeasonState } from "../lib/server/userSeason.js";
-import { refreshSingleUserScores } from "../lib/server/scoringSync.js";
+import { ensureUserSeasonState, ensureUserWeekState } from "../lib/server/userSeason.js";
+import { getCurrentWeek, refreshSingleUserScores } from "../lib/server/scoringSync.js";
 import { getEventsByYear } from "../src/DataBase/services/tba.services.js";
 
 function normalizeEventKey(eventKey) {
@@ -80,9 +80,10 @@ export default async function handler(req, res) {
       const currentSeason = Number(process.env.FRC_SEASON_YEAR) || new Date().getFullYear();
       const seasonResetApplied = ensureUserSeasonState(user, currentSeason);
       const pointsUpdated = await refreshSingleUserScores(user);
+      const weekResetApplied = ensureUserWeekState(user, currentSeason, getCurrentWeek(currentSeason));
       const eventDatesHydrated = await hydrateMissingRegionalStartDates(user);
 
-      if (seasonResetApplied || pointsUpdated || eventDatesHydrated) {
+      if (seasonResetApplied || pointsUpdated || weekResetApplied || eventDatesHydrated) {
         if (pointsUpdated || eventDatesHydrated) {
           user.markModified("regionals");
         }

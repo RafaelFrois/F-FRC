@@ -10,6 +10,9 @@ const userSchema = new mongoose.Schema({
 
   patrimonio: { type: Number, default: 300 },
   patrimonioSeason: { type: Number, default: () => new Date().getFullYear() },
+  weekStateSeason: { type: Number, default: () => new Date().getFullYear() },
+  weekStateNumber: { type: Number, default: 1 },
+  totalPointsCarryover: { type: Number, default: 0 },
   totalPointsSeason: { type: Number, default: 0 },
 
   regionals: [

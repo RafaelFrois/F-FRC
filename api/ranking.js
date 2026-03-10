@@ -2,8 +2,8 @@ import connectMongo from "../config/mongo.js";
 import User from "../src/DataBase/models/Users.js";
 import { getUserIdFromRequest } from "../lib/server/auth.js";
 import { methodNotAllowed, setCors, handleOptions } from "../lib/server/http.js";
-import { ensureUserSeasonState } from "../lib/server/userSeason.js";
-import { refreshSingleUserScores } from "../lib/server/scoringSync.js";
+import { ensureUserSeasonState, ensureUserWeekState } from "../lib/server/userSeason.js";
+import { getCurrentWeek, refreshSingleUserScores } from "../lib/server/scoringSync.js";
 
 function parseSearch(rawSearch) {
   return String(rawSearch || "").trim().toLowerCase();
@@ -56,8 +56,9 @@ export default async function handler(req, res) {
       const currentSeason = Number(process.env.FRC_SEASON_YEAR) || new Date().getFullYear();
       const seasonResetApplied = ensureUserSeasonState(user, currentSeason);
       const pointsUpdated = await refreshSingleUserScores(user);
+      const weekResetApplied = ensureUserWeekState(user, currentSeason, getCurrentWeek(currentSeason));
 
-      if (seasonResetApplied || pointsUpdated) {
+      if (seasonResetApplied || pointsUpdated || weekResetApplied) {
         if (pointsUpdated) {
           user.markModified("regionals");
         }

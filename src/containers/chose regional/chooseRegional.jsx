@@ -51,23 +51,16 @@ function ChooseRegional() {
   function calculateCurrentWeek() {
     const today = new Date();
     const week1Start = new Date(seasonYear, 2, 1);
-    const week1End = new Date(seasonYear, 2, 8);
     const week1AvailableFrom = new Date(week1Start.getTime() - 14 * 24 * 60 * 60 * 1000); // 2 semanas antes
-    
-    // Se estamos 2 semanas antes ou durante a week 1, retorna week 1
-    if (today >= week1AvailableFrom && today <= week1End) {
+
+    // Se for bem antes da abertura da season, mantém week 1.
+    if (today < week1AvailableFrom) {
       return 1;
     }
-    
-    // Se for após week 1, calcular qual week está ativa
-    if (today > week1End) {
-      const daysSinceWeek1Start = Math.floor((today - week1Start) / (1000 * 60 * 60 * 24));
-      const week = Math.floor(daysSinceWeek1Start / 7) + 1;
-      return Math.max(1, week);
-    }
-    
-    // Se for bem antes de week 1 ficar disponível
-    return 1; // Ainda mostra week 1, mas sem regionais disponíveis
+
+    const daysSinceWeek1Start = Math.floor((today - week1Start) / (1000 * 60 * 60 * 24));
+    const week = Math.floor(daysSinceWeek1Start / 7) + 1;
+    return Math.max(1, week);
   }
 
   // Retorna o status do regional

@@ -2,7 +2,8 @@ import bcrypt from "bcryptjs";
 import connectMongo from "../config/mongo.js";
 import User from "../src/DataBase/models/Users.js";
 import { methodNotAllowed, parseJsonBody, setCors, handleOptions } from "../lib/server/http.js";
-import { ensureUserSeasonState } from "../lib/server/userSeason.js";
+import { ensureUserSeasonState, ensureUserWeekState } from "../lib/server/userSeason.js";
+import { getCurrentWeek, refreshSingleUserScores } from "../lib/server/scoringSync.js";
 import { setAuthCookie, signUserToken } from "../lib/server/auth.js";
 
 export default async function handler(req, res) {
@@ -30,7 +31,12 @@ export default async function handler(req, res) {
 
     const currentSeason = Number(process.env.FRC_SEASON_YEAR) || new Date().getFullYear();
     const seasonResetApplied = ensureUserSeasonState(user, currentSeason);
-    if (seasonResetApplied) {
+    const pointsUpdated = await refreshSingleUserScores(user);
+    const weekResetApplied = ensureUserWeekState(user, currentSeason, getCurrentWeek(currentSeason));
+    if (seasonResetApplied || pointsUpdated || weekResetApplied) {
+      if (pointsUpdated) {
+        user.markModified("regionals");
+      }
       await user.save();
     }
 

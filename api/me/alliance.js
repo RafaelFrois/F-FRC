@@ -4,8 +4,9 @@ import Score from "../../src/DataBase/models/score.js";
 import { getEventsByYear, getTeamsByEvent } from "../../src/DataBase/services/tba.services.js";
 import { calculateEventScores } from "../../src/DataBase/services/scoring.service.js";
 import { getUserIdFromRequest } from "../../lib/server/auth.js";
-import { ensureUserSeasonState } from "../../lib/server/userSeason.js";
+import { ensureUserSeasonState, ensureUserWeekState } from "../../lib/server/userSeason.js";
 import { methodNotAllowed, parseJsonBody, setCors, handleOptions } from "../../lib/server/http.js";
+import { getCurrentWeek } from "../../lib/server/scoringSync.js";
 
 function normalizeEventKey(eventKey) {
   return String(eventKey || "").trim().toLowerCase();
@@ -79,10 +80,15 @@ function calculateAllianceCost(alliance) {
   }, 0);
 }
 
-function calculateSeasonTotalPoints(regionals) {
+function applyCaptainMultiplier(points, isCaptain) {
+  const basePoints = Number(points || 0);
+  return isCaptain ? basePoints * 1.5 : basePoints;
+}
+
+function calculateSeasonTotalPoints(regionals, carryover = 0) {
   return (Array.isArray(regionals) ? regionals : []).reduce((sum, regionalEntry) => {
     return sum + Number(regionalEntry?.totalRegionalPoints || 0);
-  }, 0);
+  }, Number(carryover || 0));
 }
 
 async function getEventMetadata(eventKey) {
@@ -128,7 +134,9 @@ async function resolveAlliancePoints(eventKey, alliance) {
     };
   });
 
-  const totalRegionalPoints = allianceWithPoints.reduce((sum, entry) => sum + Number(entry.points || 0), 0);
+  const totalRegionalPoints = allianceWithPoints.reduce((sum, entry) => {
+    return sum + applyCaptainMultiplier(entry.points, Boolean(entry.isCaptain));
+  }, 0);
   return { allianceWithPoints, totalRegionalPoints };
 }
 
@@ -148,6 +156,7 @@ export default async function handler(req, res) {
 
     const currentSeason = Number(process.env.FRC_SEASON_YEAR) || new Date().getFullYear();
     const seasonResetApplied = ensureUserSeasonState(user, currentSeason);
+    const weekResetApplied = ensureUserWeekState(user, currentSeason, getCurrentWeek(currentSeason));
 
     if (req.method === "DELETE") {
       const normalizedEventKey = normalizeEventKey(req.query?.eventKey || req.query?.event_key);
@@ -171,7 +180,7 @@ export default async function handler(req, res) {
         (entry) => normalizeEventKey(entry?.eventKey) !== normalizedEventKey
       );
       user.patrimonio = Math.max(0, Number(user.patrimonio || 0) + removedCost);
-      user.totalPointsSeason = calculateSeasonTotalPoints(user.regionals);
+      user.totalPointsSeason = calculateSeasonTotalPoints(user.regionals, user.totalPointsCarryover);
 
       await user.save();
       const userWithoutPassword = user.toObject();
@@ -263,8 +272,8 @@ export default async function handler(req, res) {
 
     user.patrimonio = Math.max(0, availablePatrimony - incomingAllianceCost);
 
-    user.totalPointsSeason = calculateSeasonTotalPoints(user.regionals);
-    if (seasonResetApplied) {
+    user.totalPointsSeason = calculateSeasonTotalPoints(user.regionals, user.totalPointsCarryover);
+    if (seasonResetApplied || weekResetApplied) {
       user.markModified("regionals");
     }
 
