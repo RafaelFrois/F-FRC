@@ -495,24 +495,20 @@ export default function Dashboard() {
   const [mostChosenTeams, setMostChosenTeams] = useState([]);
   const [isMostChosenLoading, setIsMostChosenLoading] = useState(true);
   const [selectedTopTeam, setSelectedTopTeam] = useState(null);
+  const [currentWeek, setCurrentWeek] = useState(calculateCurrentWeek());
+  const seasonYear = new Date().getFullYear();
 
   function calculateCurrentWeek() {
-    const seasonYear = new Date().getFullYear();
     const today = new Date();
     const week1Start = new Date(seasonYear, 2, 1);
-    const week1End = new Date(seasonYear, 2, 8);
     const week1AvailableFrom = new Date(week1Start.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-    if (today >= week1AvailableFrom && today <= week1End) {
+    if (today < week1AvailableFrom) {
       return 1;
     }
 
-    if (today > week1End) {
-      const daysSinceWeek1Start = Math.floor((today - week1Start) / (1000 * 60 * 60 * 24));
-      return Math.max(1, Math.floor(daysSinceWeek1Start / 7) + 1);
-    }
-
-    return 1;
+    const daysSinceWeek1Start = Math.floor((today - week1Start) / (1000 * 60 * 60 * 24));
+    return Math.max(1, Math.floor(daysSinceWeek1Start / 7) + 1);
   }
 
   useEffect(() => {
@@ -521,6 +517,7 @@ export default function Dashboard() {
 
     const loadUser = async () => {
       try {
+        setCurrentWeek(calculateCurrentWeek());
         const u = await getMe();
         if (mounted) setUser(u);
       } catch (e) {
@@ -546,8 +543,7 @@ export default function Dashboard() {
       if (mounted) setIsMostChosenLoading(true);
 
       try {
-        const week = calculateCurrentWeek();
-        const response = await fetch(`/api/score/top-week?week=${week}&metric=chosen`);
+        const response = await fetch(`/api/score/top-week?week=${currentWeek}&metric=chosen`);
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
@@ -570,7 +566,7 @@ export default function Dashboard() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [currentWeek]);
 
   useEffect(() => {
     let mounted = true;
@@ -579,8 +575,7 @@ export default function Dashboard() {
       if (mounted) setIsTopWeekLoading(true);
 
       try {
-        const week = calculateCurrentWeek();
-        const response = await fetch(`/api/score/top-week?week=${week}`);
+        const response = await fetch(`/api/score/top-week?week=${currentWeek}`);
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
@@ -603,7 +598,7 @@ export default function Dashboard() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [currentWeek]);
 
   const initials = user && user.username
     ? user.username.split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase()
@@ -674,12 +669,13 @@ export default function Dashboard() {
     <FullPage>
       <AppHeader
         title="FANTASY - FRC"
-        subtitle="WEEK 1 – 2026 REBUILT"
+        subtitle={`WEEK ${currentWeek} - ${seasonYear} REBUILT`}
         rightText="PÁGINA INICIAL"
         maxWidth={1200}
       />
 
       <Container>
+        <Subtitle>{`Pontuação da Week ${currentWeek}: ${Number(user?.currentWeekPoints || 0).toFixed(2)}`}</Subtitle>
         <MainContent>
         <LeftColumn>
           <SidebarAvatar>

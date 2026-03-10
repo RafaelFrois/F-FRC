@@ -173,6 +173,17 @@ export default function PublicProfile() {
 
               <Row>
                 <Col>
+                  <Label>{`PONTUAÇÃO WEEK ${Number(profile?.currentWeek || 1)}`}</Label>
+                  <Value>{Number(profile?.currentWeekPoints || 0).toFixed(2)}</Value>
+                </Col>
+                <Col>
+                  <Label>WEEK ATUAL</Label>
+                  <Value>{Number(profile?.currentWeek || 1)}</Value>
+                </Col>
+              </Row>
+
+              <Row>
+                <Col>
                   <Label>ANO ROOKIE</Label>
                   <Value>{profile?.rookieYear ?? "---"}</Value>
                 </Col>

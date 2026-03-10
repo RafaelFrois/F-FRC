@@ -2,7 +2,7 @@ import connectMongo from "../config/mongo.js";
 import User from "../src/DataBase/models/Users.js";
 import { getUserIdFromRequest } from "../lib/server/auth.js";
 import { methodNotAllowed, setCors, handleOptions } from "../lib/server/http.js";
-import { ensureUserSeasonState, ensureUserWeekState } from "../lib/server/userSeason.js";
+import { calculateUserWeekPoints, ensureUserSeasonState, ensureUserWeekState } from "../lib/server/userSeason.js";
 import { getCurrentWeek, refreshSingleUserScores } from "../lib/server/scoringSync.js";
 
 function parseSearch(rawSearch) {
@@ -30,7 +30,8 @@ function sanitizeRankingUser(user) {
     username: String(user?.username || "Usuário"),
     profilePhoto: user?.profilePhoto || "",
     frcTeamNumber: Number.isFinite(Number(user?.frcTeamNumber)) ? Number(user.frcTeamNumber) : null,
-    totalPointsSeason: Number(user?.totalPointsSeason || 0)
+    totalPointsSeason: Number(user?.totalPointsSeason || 0),
+    currentWeekPoints: Number(user?.currentWeekPoints || 0)
   };
 }
 
@@ -51,12 +52,14 @@ export default async function handler(req, res) {
     };
 
     const users = await User.find({}).select("username profilePhoto frcTeamNumber totalPointsSeason regionals patrimonio patrimonioSeason");
+    const currentSeason = Number(process.env.FRC_SEASON_YEAR) || new Date().getFullYear();
+    const currentWeek = getCurrentWeek(currentSeason);
 
     for (const user of users) {
-      const currentSeason = Number(process.env.FRC_SEASON_YEAR) || new Date().getFullYear();
       const seasonResetApplied = ensureUserSeasonState(user, currentSeason);
       const pointsUpdated = await refreshSingleUserScores(user);
-      const weekResetApplied = ensureUserWeekState(user, currentSeason, getCurrentWeek(currentSeason));
+      const weekResetApplied = ensureUserWeekState(user, currentSeason, currentWeek);
+      user.currentWeekPoints = Number(calculateUserWeekPoints(user, currentWeek) || 0);
 
       if (seasonResetApplied || pointsUpdated || weekResetApplied) {
         if (pointsUpdated) {
@@ -100,7 +103,9 @@ export default async function handler(req, res) {
           frcTeamNumber: Number.isFinite(Number(fullUser?.frcTeamNumber)) ? Number(fullUser.frcTeamNumber) : null,
           rookieYear: Number.isFinite(Number(fullUser?.rookieYear)) ? Number(fullUser.rookieYear) : null,
           patrimonio: Number(fullUser?.patrimonio || 0),
-          totalPointsSeason: Number(fullUser?.totalPointsSeason || 0)
+          totalPointsSeason: Number(fullUser?.totalPointsSeason || 0),
+          currentWeek: currentWeek,
+          currentWeekPoints: Number(calculateUserWeekPoints(fullUser, currentWeek) || 0)
         },
         position: targetUser.position
       });
@@ -114,7 +119,9 @@ export default async function handler(req, res) {
       currentUser: {
         id: String(userId),
         position: currentUserRanking?.position || null,
-        totalPointsSeason: Number(currentUserRanking?.totalPointsSeason || 0)
+        totalPointsSeason: Number(currentUserRanking?.totalPointsSeason || 0),
+        currentWeek: currentWeek,
+        currentWeekPoints: Number(currentUserRanking?.currentWeekPoints || 0)
       }
     });
   } catch (error) {

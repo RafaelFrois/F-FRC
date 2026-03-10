@@ -2,7 +2,7 @@ import connectMongo from "../../config/mongo.js";
 import User from "../../src/DataBase/models/Users.js";
 import { getUserIdFromRequest } from "../../lib/server/auth.js";
 import { methodNotAllowed, setCors, handleOptions } from "../../lib/server/http.js";
-import { ensureUserSeasonState, ensureUserWeekState } from "../../lib/server/userSeason.js";
+import { calculateUserWeekPoints, ensureUserSeasonState, ensureUserWeekState } from "../../lib/server/userSeason.js";
 import { getCurrentWeek, refreshSingleUserScores } from "../../lib/server/scoringSync.js";
 
 function sanitizePublicProfile(user) {
@@ -13,7 +13,9 @@ function sanitizePublicProfile(user) {
     frcTeamNumber: Number.isFinite(Number(user?.frcTeamNumber)) ? Number(user.frcTeamNumber) : null,
     rookieYear: Number.isFinite(Number(user?.rookieYear)) ? Number(user.rookieYear) : null,
     patrimonio: Number(user?.patrimonio || 0),
-    totalPointsSeason: Number(user?.totalPointsSeason || 0)
+    totalPointsSeason: Number(user?.totalPointsSeason || 0),
+    currentWeek: Number(user?.currentWeek || 1),
+    currentWeekPoints: Number(user?.currentWeekPoints || 0)
   };
 }
 
@@ -37,9 +39,12 @@ export default async function handler(req, res) {
     }
 
     const currentSeason = Number(process.env.FRC_SEASON_YEAR) || new Date().getFullYear();
+    const currentWeek = getCurrentWeek(currentSeason);
     const seasonResetApplied = ensureUserSeasonState(user, currentSeason);
     const pointsUpdated = await refreshSingleUserScores(user);
-    const weekResetApplied = ensureUserWeekState(user, currentSeason, getCurrentWeek(currentSeason));
+    const weekResetApplied = ensureUserWeekState(user, currentSeason, currentWeek);
+    user.currentWeek = currentWeek;
+    user.currentWeekPoints = Number(calculateUserWeekPoints(user, currentWeek) || 0);
 
     if (seasonResetApplied || pointsUpdated || weekResetApplied) {
       if (pointsUpdated) {
