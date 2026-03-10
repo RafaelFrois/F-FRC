@@ -495,10 +495,11 @@ export default function Dashboard() {
   const [mostChosenTeams, setMostChosenTeams] = useState([]);
   const [isMostChosenLoading, setIsMostChosenLoading] = useState(true);
   const [selectedTopTeam, setSelectedTopTeam] = useState(null);
-  const [currentWeek, setCurrentWeek] = useState(calculateCurrentWeek());
   const seasonYear = new Date().getFullYear();
+  const [currentWeek, setCurrentWeek] = useState(calculateCurrentWeek());
 
   function calculateCurrentWeek() {
+    const seasonYear = new Date().getFullYear();
     const today = new Date();
     const week1Start = new Date(seasonYear, 2, 1);
     const week1AvailableFrom = new Date(week1Start.getTime() - 14 * 24 * 60 * 60 * 1000);
