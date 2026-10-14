@@ -38,6 +38,13 @@ export default function Register(){
         return
     }
 
+    //Formato do e-mail
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())){
+        setMessage('Informe um e-mail válido.');
+        setMessageType('error');
+        return
+    }
+
     //Tamanho minimo da senha
     if(password.length < 8){
         setMessage('A senha deve ter no mínimo 8 caracteres.');
@@ -56,11 +63,12 @@ export default function Register(){
         setIsLoading(true);
         
         const userData = {
-            email,
-            username: userName,
+            email: email.trim().toLowerCase(),
+            username: userName.trim(),
             password,
-            frcTeamNumber: frcNumber ? parseInt(frcNumber) : undefined,
-            rookieYear: rookieYear ? parseInt(rookieYear) : undefined
+            confirmPassword,
+            frcTeamNumber: frcNumber.trim() ? Number(frcNumber.trim()) : undefined,
+            rookieYear: rookieYear.trim() ? Number(rookieYear.trim()) : undefined
         };
 
         await registerUser(userData);

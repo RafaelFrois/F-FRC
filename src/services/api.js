@@ -92,53 +92,37 @@ export const loginUser = async (email, password) => {
   }
 };
 
-export const getUser = async (id) => {
-  try {
-    const response = await fetch(`/api/user/${id}`);
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || 'Erro ao buscar usuário');
-    return data.user;
-  } catch (error) {
-    throw error;
+// Sessão ausente ou expirada em uma página privada: volta para o login.
+function redirectToLoginIfUnauthorized(response) {
+  if (response.status === 401 && window.location.pathname !== "/") {
+    window.location.assign("/");
   }
-};
+}
 
-export const updateUser = async (id, payload) => {
+export const logoutUser = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/user/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+    const response = await fetchWithTimeout(`/api/logout`, {
+      method: "POST",
+      credentials: "include"
     });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || 'Erro ao atualizar usuário');
-    return data.user;
-  } catch (error) {
-    throw error;
-  }
-};
-
-export const uploadProfilePhoto = async (id, file) => {
-  try {
-    const form = new FormData();
-    form.append('profilePhoto', file);
-    const response = await fetch(`${API_BASE_URL}/user/${id}/photo`, {
-      method: 'POST',
-      body: form
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || 'Erro ao enviar foto');
+    const data = await parseResponseSafe(response);
+    if (!response.ok) throw new Error(data.message || "Erro ao sair");
     return data;
   } catch (error) {
-    throw error;
+    throw normalizeApiError(error, "Erro ao sair");
   }
 };
 
 export const getMe = async () => {
   try {
     const response = await fetch(`/api/me`, { credentials: 'include' });
+    redirectToLoginIfUnauthorized(response);
     const data = await response.json();
-    if (!response.ok) throw new Error(data.message || 'Erro ao buscar usuário atual');
+    if (!response.ok) {
+      const error = new Error(data.message || 'Erro ao buscar usuário atual');
+      error.status = response.status;
+      throw error;
+    }
     return data.user;
   } catch (error) {
     throw error;
@@ -153,6 +137,7 @@ export const updateMe = async (payload) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
+    redirectToLoginIfUnauthorized(response);
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || 'Erro ao atualizar usuário');
     return data.user;
@@ -170,6 +155,7 @@ export const uploadProfilePhotoMe = async (file) => {
       credentials: 'include',
       body: form
     });
+    redirectToLoginIfUnauthorized(response);
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || 'Erro ao enviar foto');
     return data;
@@ -186,6 +172,7 @@ export const getWorldRanking = async ({ search = "", name = "", teamNumber = "" 
     if (String(teamNumber || "").trim()) params.set("teamNumber", String(teamNumber).trim());
     const url = params.toString() ? `/api/ranking?${params.toString()}` : "/api/ranking";
     const response = await fetch(url, { credentials: "include" });
+    redirectToLoginIfUnauthorized(response);
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || "Erro ao buscar ranking mundial");
     return data;
@@ -199,6 +186,7 @@ export const getPublicProfile = async (userId) => {
     const response = await fetch(`/api/ranking?userId=${encodeURIComponent(userId)}`, {
       credentials: "include"
     });
+    redirectToLoginIfUnauthorized(response);
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || "Erro ao buscar perfil público");
     return data;

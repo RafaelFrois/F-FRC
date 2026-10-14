@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { getMe, updateMe, uploadProfilePhotoMe } from '../../services/api';
+import { getMe, updateMe, uploadProfilePhotoMe, logoutUser } from '../../services/api';
 import AppHeader from '../../components/AppHeader';
 
 const FullPage = styled.div`
@@ -126,7 +126,7 @@ export default function UserProfile(){
       });
     }catch(e){
       console.error(e);
-      alert('Erro ao buscar perfil — verifique se está autenticado');
+      if (e?.status !== 401) alert('Erro ao buscar perfil — verifique se está autenticado');
     }finally{
       setLoading(false);
     }
@@ -147,9 +147,19 @@ export default function UserProfile(){
       setEditing(false);
     }catch(e){
       console.error(e);
-      alert('Erro ao salvar perfil');
+      alert(e.message || 'Erro ao salvar perfil');
     }finally{
       setLoading(false);
+    }
+  }
+
+  async function handleLogout(){
+    try{
+      await logoutUser();
+    }catch(e){
+      console.error(e);
+    }finally{
+      window.location.assign('/');
     }
   }
 
@@ -220,7 +230,10 @@ export default function UserProfile(){
                 </Col>
               </Row>
 
-              <EditButton onClick={() => setEditing(true)}>EDITAR</EditButton>
+              <div style={{display:'flex', gap:10, justifyContent:'center'}}>
+                <EditButton onClick={() => setEditing(true)}>EDITAR</EditButton>
+                <EditButton style={{background:'#6c757d'}} onClick={handleLogout}>SAIR</EditButton>
+              </div>
             </>
           ) : (
             <>

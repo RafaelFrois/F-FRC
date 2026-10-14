@@ -5,9 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:api": "node scripts/dev-api.mjs",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\"",
+    "audit:db": "node scripts/audit-db.mjs"
   },
   "dependencies": {
     "@types/styled-components": "^5.1.36",
@@ -34,6 +37,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "mongodb-memory-server": "^10.4.3",
     "vite": "^7.2.4"
   },
   "description": "This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.",

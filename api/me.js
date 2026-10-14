@@ -1,7 +1,8 @@
 import connectMongo from "../config/mongo.js";
 import User from "../src/DataBase/models/Users.js";
 import { getUserIdFromRequest } from "../lib/server/auth.js";
-import { methodNotAllowed, parseJsonBody, setCors, handleOptions } from "../lib/server/http.js";
+import { methodNotAllowed, parseJsonBody, sendError, setCors, handleOptions } from "../lib/server/http.js";
+import { isDuplicateKeyError, validateProfileUpdate } from "../lib/server/validation.js";
 import { calculateUserWeekPoints, ensureUserSeasonState, ensureUserWeekState } from "../lib/server/userSeason.js";
 import { getCurrentWeek, refreshSingleUserScores } from "../lib/server/scoringSync.js";
 import { getEventsByYear } from "../src/DataBase/services/tba.services.js";
@@ -98,26 +99,29 @@ export default async function handler(req, res) {
       return res.json({ user: userWithoutPassword });
     }
 
-    const { username, frcTeamNumber, rookieYear, profilePhoto } = await parseJsonBody(req);
-    const update = {};
-    if (username !== undefined) update.username = username;
-    if (frcTeamNumber !== undefined) update.frcTeamNumber = frcTeamNumber;
-    if (rookieYear !== undefined) update.rookieYear = rookieYear;
-    if (profilePhoto !== undefined) update.profilePhoto = profilePhoto;
+    const { update, unset } = validateProfileUpdate(await parseJsonBody(req));
+    const changes = {};
+    if (Object.keys(update).length) changes.$set = update;
+    if (Object.keys(unset).length) changes.$unset = unset;
 
-    const user = await User.findByIdAndUpdate(userId, update, { new: true }).select("-password");
+    if (update.username) {
+      const taken = await User.exists({ username: update.username, _id: { $ne: userId } });
+      if (taken) {
+        return res.status(409).json({ message: "Nome de usuário já está em uso", field: "username" });
+      }
+    }
+
+    // O filtro usa só o id do token: um usuário nunca altera o perfil de outro.
+    const user = await User.findByIdAndUpdate(userId, changes, { new: true, runValidators: true }).select("-password");
     if (!user) {
       return res.status(404).json({ message: "Usuário não encontrado" });
     }
 
     return res.json({ message: "Perfil atualizado com sucesso", user });
   } catch (error) {
-    if (error.statusCode) {
-      return res.status(error.statusCode).json({ message: error.message });
+    if (isDuplicateKeyError(error)) {
+      return res.status(409).json({ message: "Nome de usuário já está em uso", field: "username" });
     }
-    if (error instanceof SyntaxError) {
-      return res.status(400).json({ message: "JSON inválido no corpo da requisição" });
-    }
-    return res.status(500).json({ error: error.message });
+    return sendError(res, error, "Erro ao processar perfil");
   }
 }

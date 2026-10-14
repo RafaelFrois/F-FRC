@@ -93,8 +93,17 @@ export default async function connectMongo() {
 
   const cache = globalCache.__mongooseCache;
 
-  if (cache.conn && mongoose.connection.readyState === 1) {
+  const readyState = mongoose.connection.readyState;
+  if (cache.conn && readyState === 1) {
     return cache.conn;
+  }
+
+  // Em instâncias serverless reaproveitadas, a conexão pode ter caído depois de
+  // estabelecida. Com bufferCommands=false, reaproveitar a promise antiga faria a
+  // próxima consulta falhar na hora; então descartamos e reconectamos.
+  if (cache.promise && (readyState === 0 || readyState === 3)) {
+    cache.promise = null;
+    cache.conn = null;
   }
 
   if (!cache.promise) {

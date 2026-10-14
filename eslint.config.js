@@ -26,4 +26,11 @@ export default defineConfig([
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
   },
+  {
+    // Código que roda no Node (funções da Vercel, scripts e testes)
+    files: ['api/**/*.js', 'lib/**/*.js', 'config/**/*.js', 'src/DataBase/**/*.js', 'scripts/**/*.{js,mjs,cjs}', 'tests/**/*.js'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 ])
