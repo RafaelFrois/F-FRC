@@ -1,8 +1,21 @@
 import bcrypt from "bcryptjs";
 import connectMongo from "../config/mongo.js";
 import User from "../src/DataBase/models/Users.js";
-import { methodNotAllowed, parseJsonBody, setCors, handleOptions } from "../lib/server/http.js";
+import { methodNotAllowed, parseJsonBody, sendError, setCors, handleOptions } from "../lib/server/http.js";
 import { STARTING_PATRIMONY } from "../lib/server/userSeason.js";
+import {
+  EMAIL_COLLATION,
+  duplicateKeyField,
+  isDuplicateKeyError,
+  validateRegistration
+} from "../lib/server/validation.js";
+
+const BCRYPT_ROUNDS = 10;
+
+function conflict(res, field) {
+  const message = field === "username" ? "Nome de usuário já está em uso" : "Email já cadastrado";
+  return res.status(409).json({ message, field });
+}
 
 export default async function handler(req, res) {
   setCors(req, res);
@@ -10,19 +23,21 @@ export default async function handler(req, res) {
   if (methodNotAllowed(req, res, ["POST"])) return;
 
   try {
+    const { email, username, password, frcTeamNumber, rookieYear } = validateRegistration(await parseJsonBody(req));
     await connectMongo();
 
-    const { email, username, password, frcTeamNumber, rookieYear } = await parseJsonBody(req);
     const currentSeason = Number(process.env.FRC_SEASON_YEAR) || new Date().getFullYear();
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "Email já cadastrado" });
-    }
+    // Contas antigas podem ter e-mail com maiúsculas: a checagem ignora a caixa.
+    const existingEmail = await User.exists({ email }).collation(EMAIL_COLLATION);
+    if (existingEmail) return conflict(res, "email");
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const existingUsername = await User.exists({ username });
+    if (existingUsername) return conflict(res, "username");
 
-    const newUser = new User({
+    const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
+
+    await User.create({
       email,
       username,
       password: hashedPassword,
@@ -32,12 +47,12 @@ export default async function handler(req, res) {
       patrimonioSeason: currentSeason
     });
 
-    await newUser.save();
     return res.status(201).json({ message: "Usuário criado com sucesso" });
   } catch (error) {
-    if (error instanceof SyntaxError) {
-      return res.status(400).json({ message: "JSON inválido no corpo da requisição" });
+    // Corrida entre duas requisições simultâneas: o índice único decide.
+    if (isDuplicateKeyError(error)) {
+      return conflict(res, duplicateKeyField(error));
     }
-    return res.status(500).json({ error: error.message });
+    return sendError(res, error, "Erro ao cadastrar usuário");
   }
 }

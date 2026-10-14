@@ -31,7 +31,20 @@ const userSchema = new mongoose.Schema({
         }
       ],
       totalRegionalPoints: { type: Number, default: 0 },
+      // Quando o custo da aliança voltou ao patrimônio (fim da week do regional)
+      patrimonySettledAt: Date,
       createdAt: { type: Date, default: Date.now }
+    }
+  ],
+
+  // Temporadas anteriores arquivadas na virada de temporada (nada é apagado)
+  seasonHistory: [
+    {
+      season: Number,
+      totalPointsSeason: Number,
+      patrimonio: Number,
+      regionals: { type: Array, default: [] },
+      archivedAt: Date
     }
   ]
 }, { timestamps: true });

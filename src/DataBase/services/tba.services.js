@@ -11,7 +11,7 @@ export async function getEventsByYear(year) {
     console.error("❌ TBA_KEY não está definida! Verifique o .env");
   }
   try {
-    console.log("📡 Chamando TBA API para eventos de", year, "com chave:", process.env.TBA_KEY?.substring(0, 10) + "...");
+    console.log("📡 Chamando TBA API para eventos de", year);
     const response = await axios.get(`${BASE_URL}/events/${year}`, { headers: { "X-TBA-Auth-Key": process.env.TBA_KEY } });
     return response.data;
   } catch (error) {

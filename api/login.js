@@ -1,34 +1,31 @@
 import bcrypt from "bcryptjs";
 import connectMongo from "../config/mongo.js";
 import User from "../src/DataBase/models/Users.js";
-import { methodNotAllowed, parseJsonBody, setCors, handleOptions } from "../lib/server/http.js";
+import { methodNotAllowed, parseJsonBody, sendError, setCors, handleOptions } from "../lib/server/http.js";
 import { ensureUserSeasonState, ensureUserWeekState } from "../lib/server/userSeason.js";
 import { getCurrentWeek, refreshSingleUserScores } from "../lib/server/scoringSync.js";
 import { setAuthCookie, signUserToken } from "../lib/server/auth.js";
+import { EMAIL_COLLATION, validateLogin } from "../lib/server/validation.js";
 
-export default async function handler(req, res) {
-  setCors(req, res);
-  if (handleOptions(req, res)) return;
-  if (methodNotAllowed(req, res, ["POST"])) return;
+const INVALID_CREDENTIALS = "Email ou senha incorretos";
 
+// Contas antigas foram gravadas sem normalizar o e-mail, então a busca ignora a caixa.
+// Se existir mais de uma conta com o mesmo e-mail em caixas diferentes, a senha decide.
+async function findUserByCredentials(email, password) {
+  const candidates = await User.find({ email }).collation(EMAIL_COLLATION).limit(5);
+  candidates.sort((a, b) => Number(b.email === email) - Number(a.email === email));
+
+  for (const candidate of candidates) {
+    if (typeof candidate.password !== "string" || !candidate.password) continue;
+    if (await bcrypt.compare(password, candidate.password)) return candidate;
+  }
+  return null;
+}
+
+// Atualiza pontos e estado da week. Não pode impedir o login: se falhar
+// (API externa fora do ar, documento antigo inválido), registra e segue.
+async function refreshUserState(user) {
   try {
-    await connectMongo();
-    const { email, password } = await parseJsonBody(req);
-
-    if (!email || !password) {
-      return res.status(400).json({ message: "Email e senha são obrigatórios" });
-    }
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ message: "Email ou senha incorretos" });
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(401).json({ message: "Email ou senha incorretos" });
-    }
-
     const currentSeason = Number(process.env.FRC_SEASON_YEAR) || new Date().getFullYear();
     const seasonResetApplied = ensureUserSeasonState(user, currentSeason);
     const pointsUpdated = await refreshSingleUserScores(user);
@@ -39,8 +36,27 @@ export default async function handler(req, res) {
       }
       await user.save();
     }
+  } catch (error) {
+    console.error(`[login] Falha ao atualizar estado do usuário ${user._id}:`, error?.message || error);
+  }
+}
+
+export default async function handler(req, res) {
+  setCors(req, res);
+  if (handleOptions(req, res)) return;
+  if (methodNotAllowed(req, res, ["POST"])) return;
+
+  try {
+    const { email, password } = validateLogin(await parseJsonBody(req));
+    await connectMongo();
+
+    const user = await findUserByCredentials(email, password);
+    if (!user) {
+      return res.status(401).json({ message: INVALID_CREDENTIALS });
+    }
 
     const token = signUserToken(user._id);
+    await refreshUserState(user);
     setAuthCookie(res, token);
 
     return res.status(200).json({
@@ -55,41 +71,6 @@ export default async function handler(req, res) {
       }
     });
   } catch (error) {
-    if (error instanceof SyntaxError) {
-      return res.status(400).json({ message: "JSON inválido no corpo da requisição" });
-    }
-
-    if (error?.diagnosis) {
-      return res.status(error.diagnosis.httpStatus || 500).json({
-        message: error.diagnosis.message,
-        code: error.diagnosis.code,
-        suggestion: error.diagnosis.suggestion
-      });
-    }
-
-    const rawMessage = String(error?.message || "");
-    const normalizedMessage = rawMessage.toLowerCase();
-
-    if (normalizedMessage.includes("mongo_uri não definida") || normalizedMessage.includes("mongo_uri")) {
-      return res.status(500).json({
-        message: "Configuração do servidor incompleta: variável MONGO_URI não definida na Vercel."
-      });
-    }
-
-    if (
-      normalizedMessage.includes("ecconnrefused") ||
-      normalizedMessage.includes("etimedout") ||
-      normalizedMessage.includes("server selection") ||
-      normalizedMessage.includes("querysrv")
-    ) {
-      return res.status(503).json({
-        message: "Não foi possível conectar ao banco de dados no momento."
-      });
-    }
-
-    return res.status(500).json({
-      message: "Erro interno ao processar login.",
-      details: process.env.NODE_ENV === "production" ? undefined : rawMessage
-    });
+    return sendError(res, error, "Erro interno ao processar login.");
   }
 }

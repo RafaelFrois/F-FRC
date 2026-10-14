@@ -28,7 +28,7 @@ export default function Login(){
 
         try {
             setIsLoading(true);
-            const response = await loginUser(email, password);
+            await loginUser(email.trim().toLowerCase(), password);
             
             setMessage('Login realizado com sucesso! Redirecionando...');
             setMessageType('success');

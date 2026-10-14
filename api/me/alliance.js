@@ -1,20 +1,25 @@
 import connectMongo from "../../config/mongo.js";
 import User from "../../src/DataBase/models/Users.js";
 import Score from "../../src/DataBase/models/score.js";
+import RegionalTeam from "../../src/DataBase/models/regionalTeam.js";
 import { getEventsByYear, getTeamsByEvent } from "../../src/DataBase/services/tba.services.js";
 import { calculateEventScores } from "../../src/DataBase/services/scoring.service.js";
+import { ensureTeamPriceForWeek, getTeamPricesForWeek } from "../../src/DataBase/services/marketSnapshot.service.js";
 import { getUserIdFromRequest } from "../../lib/server/auth.js";
+import {
+  AllianceRuleError,
+  MAX_REGIONALS_PER_WEEK,
+  countRegionalsInWeek,
+  isSelectionClosed,
+  parseAllianceSelection,
+  priceFromSnapshot
+} from "../../lib/server/alliance.js";
 import { ensureUserSeasonState, ensureUserWeekState } from "../../lib/server/userSeason.js";
-import { methodNotAllowed, parseJsonBody, setCors, handleOptions } from "../../lib/server/http.js";
+import { methodNotAllowed, parseJsonBody, sendError, setCors, handleOptions } from "../../lib/server/http.js";
 import { getCurrentWeek } from "../../lib/server/scoringSync.js";
 
 function normalizeEventKey(eventKey) {
   return String(eventKey || "").trim().toLowerCase();
-}
-
-function normalizeTeamNumber(teamNumber) {
-  const value = Number(teamNumber);
-  return Number.isFinite(value) ? value : null;
 }
 
 function getWeekNumberFromDate(dateInput, seasonYear) {
@@ -27,51 +32,6 @@ function getWeekNumberFromDate(dateInput, seasonYear) {
 
   const daysSinceWeek1 = Math.floor((eventDate - week1Start) / (1000 * 60 * 60 * 24));
   return Math.max(1, Math.floor(daysSinceWeek1 / 7) + 1);
-}
-
-function sanitizeAlliance(rawAlliance) {
-  const alliance = Array.isArray(rawAlliance) ? rawAlliance : [];
-
-  return alliance
-    .map((entry) => {
-      const teamNumber = normalizeTeamNumber(entry?.teamNumber);
-      if (!teamNumber) return null;
-
-      return {
-        teamNumber,
-        nickname: String(entry?.nickname || "").trim() || `Team ${teamNumber}`,
-        isCaptain: Boolean(entry?.isCaptain),
-        marketValue: Math.max(0, Number(entry?.marketValue || entry?.price || 0))
-      };
-    })
-    .filter(Boolean);
-}
-
-async function enrichAllianceNamesFromTba(eventKey, alliance) {
-  const safeAlliance = Array.isArray(alliance) ? alliance : [];
-  if (!eventKey || safeAlliance.length === 0) return safeAlliance;
-
-  try {
-    const teams = await getTeamsByEvent(eventKey);
-    const nameByNumber = new Map(
-      (Array.isArray(teams) ? teams : []).map((team) => [
-        Number(team?.team_number),
-        String(team?.nickname || team?.name || "").trim()
-      ])
-    );
-
-    return safeAlliance.map((entry) => {
-      const teamNumber = Number(entry?.teamNumber);
-      const officialName = String(nameByNumber.get(teamNumber) || "").trim();
-
-      return {
-        ...entry,
-        nickname: officialName || String(entry?.nickname || `Team ${teamNumber}`)
-      };
-    });
-  } catch {
-    return safeAlliance;
-  }
 }
 
 function calculateAllianceCost(alliance) {
@@ -96,11 +56,63 @@ async function getEventMetadata(eventKey) {
 
   try {
     const events = await getEventsByYear(currentYear);
-    const event = events.find((entry) => String(entry?.key || "").trim().toLowerCase() === eventKey);
-    return { event, currentYear };
+    const event = (Array.isArray(events) ? events : []).find(
+      (entry) => String(entry?.key || "").trim().toLowerCase() === eventKey
+    );
+    return { event: event || null, currentYear, lookupFailed: false };
   } catch {
-    return { event: null, currentYear };
+    return { event: null, currentYear, lookupFailed: true };
   }
+}
+
+// Sem o calendário oficial não dá para saber se o regional já fechou:
+// a operação é recusada em vez de liberada.
+function requireEvent({ event, lookupFailed }) {
+  if (lookupFailed) {
+    throw new AllianceRuleError("Não foi possível verificar o calendário do regional. Tente novamente em instantes.", 503);
+  }
+  if (!event) {
+    throw new AllianceRuleError("Regional não encontrado na temporada atual.", 404);
+  }
+  return event;
+}
+
+// Equipes inscritas no evento: cache em RegionalTeam (preenchido por /api/regionals/teams) ou TBA.
+async function getEventTeamNames(eventKey) {
+  const cached = await RegionalTeam.find({ event_key: eventKey }).lean();
+  if (cached.length > 0) {
+    return new Map(cached.map((team) => [Number(team.team_number), String(team.nickname || "").trim()]));
+  }
+
+  try {
+    const teams = await getTeamsByEvent(eventKey);
+    return new Map((Array.isArray(teams) ? teams : []).map((team) => [
+      Number(team?.team_number),
+      String(team?.nickname || team?.name || "").trim()
+    ]));
+  } catch {
+    throw new AllianceRuleError("Não foi possível carregar as equipes do regional. Tente novamente em instantes.", 503);
+  }
+}
+
+// Preço efetivo de cada equipe na week do evento, sempre calculado no servidor.
+async function resolveTeamPrices(teamNumbers, seasonYear, week) {
+  const snapshots = await getTeamPricesForWeek(teamNumbers, seasonYear, week);
+  const snapshotByTeam = new Map(snapshots.map((snapshot) => [Number(snapshot.teamNumber), snapshot]));
+
+  const missing = teamNumbers.filter((teamNumber) => !snapshotByTeam.has(teamNumber));
+  if (missing.length > 0) {
+    const created = await Promise.allSettled(
+      missing.map((teamNumber) => ensureTeamPriceForWeek(teamNumber, seasonYear, week))
+    );
+    created.forEach((result) => {
+      if (result.status === "fulfilled" && result.value) {
+        snapshotByTeam.set(Number(result.value.teamNumber), result.value);
+      }
+    });
+  }
+
+  return new Map(teamNumbers.map((teamNumber) => [teamNumber, priceFromSnapshot(snapshotByTeam.get(teamNumber))]));
 }
 
 async function resolveAlliancePoints(eventKey, alliance) {
@@ -164,8 +176,15 @@ export default async function handler(req, res) {
         return res.status(400).json({ message: "eventKey é obrigatório" });
       }
 
-      const { event: deleteEvent } = await getEventMetadata(normalizedEventKey);
-      if (deleteEvent?.start_date && new Date() >= new Date(deleteEvent.start_date)) {
+      const removedRegionalExists = (user.regionals || []).some(
+        (entry) => normalizeEventKey(entry?.eventKey) === normalizedEventKey
+      );
+      if (!removedRegionalExists) {
+        return res.status(404).json({ message: "Você não tem aliança neste regional." });
+      }
+
+      const deleteEvent = requireEvent(await getEventMetadata(normalizedEventKey));
+      if (isSelectionClosed(deleteEvent)) {
         return res.status(403).json({
           message: "Este regional foi iniciado e não permite excluir a aliança."
         });
@@ -194,32 +213,46 @@ export default async function handler(req, res) {
 
     const body = await parseJsonBody(req);
     const normalizedEventKey = normalizeEventKey(body?.eventKey);
-    const sanitizedAlliance = sanitizeAlliance(body?.alliance);
-    const isEditing = Boolean(body?.isEditing);
+    const isEditing = body?.isEditing === true;
 
     if (!normalizedEventKey) {
       return res.status(400).json({ message: "eventKey é obrigatório" });
     }
 
-    if (sanitizedAlliance.length !== 3) {
-      return res.status(400).json({ message: "A aliança deve conter exatamente 3 times" });
-    }
+    const selection = parseAllianceSelection(body?.alliance);
 
-    if (!sanitizedAlliance.some((entry) => entry.isCaptain)) {
-      return res.status(400).json({ message: "Selecione um capitão para a aliança" });
-    }
-
-    const uniqueTeamNumbers = new Set(sanitizedAlliance.map((entry) => entry.teamNumber));
-    if (uniqueTeamNumbers.size !== sanitizedAlliance.length) {
-      return res.status(400).json({ message: "A aliança não pode conter times repetidos" });
-    }
-
-    const { event, currentYear } = await getEventMetadata(normalizedEventKey);
-    if (event?.start_date && new Date() >= new Date(event.start_date)) {
+    const metadata = await getEventMetadata(normalizedEventKey);
+    const event = requireEvent(metadata);
+    if (isSelectionClosed(event)) {
       return res.status(403).json({
         message: "Este regional foi iniciado e não permite mais seleções."
       });
     }
+
+    const teamNames = await getEventTeamNames(normalizedEventKey);
+    const outsideEvent = selection.filter((entry) => !teamNames.has(entry.teamNumber));
+    if (outsideEvent.length > 0) {
+      return res.status(400).json({
+        message: `Equipe(s) fora deste regional: ${outsideEvent.map((entry) => entry.teamNumber).join(", ")}`
+      });
+    }
+
+    const seasonYear = new Date(event.start_date).getFullYear() || metadata.currentYear;
+    const eventWeek = getWeekNumberFromDate(event.start_date, seasonYear);
+
+    if (countRegionalsInWeek(user.regionals, eventWeek, normalizedEventKey) >= MAX_REGIONALS_PER_WEEK) {
+      return res.status(409).json({
+        message: `Você já escalou ${MAX_REGIONALS_PER_WEEK} regionais nesta week.`
+      });
+    }
+
+    const prices = await resolveTeamPrices(selection.map((entry) => entry.teamNumber), seasonYear, eventWeek);
+    const pricedAlliance = selection.map((entry) => ({
+      teamNumber: entry.teamNumber,
+      nickname: teamNames.get(entry.teamNumber) || `Team ${entry.teamNumber}`,
+      isCaptain: entry.isCaptain,
+      marketValue: prices.get(entry.teamNumber)
+    }));
 
     const existingIndex = (user.regionals || []).findIndex(
       (entry) => normalizeEventKey(entry?.eventKey) === normalizedEventKey
@@ -232,7 +265,7 @@ export default async function handler(req, res) {
 
     const currentPatrimony = Math.max(0, Number(user.patrimonio || 0));
     const existingAllianceCost = calculateAllianceCost(existingRegional?.alliance);
-    const incomingAllianceCost = calculateAllianceCost(sanitizedAlliance);
+    const incomingAllianceCost = calculateAllianceCost(pricedAlliance);
     const availablePatrimony = existingRegional ? currentPatrimony + existingAllianceCost : currentPatrimony;
 
     if (incomingAllianceCost > availablePatrimony) {
@@ -241,17 +274,13 @@ export default async function handler(req, res) {
       });
     }
 
-    const seasonYear = event?.start_date ? new Date(event.start_date).getFullYear() : currentYear;
-    const eventWeek = event?.start_date ? getWeekNumberFromDate(event.start_date, seasonYear) : 1;
-
-    const namedAlliance = await enrichAllianceNamesFromTba(normalizedEventKey, sanitizedAlliance);
-    const { allianceWithPoints, totalRegionalPoints } = await resolveAlliancePoints(normalizedEventKey, namedAlliance);
+    const { allianceWithPoints, totalRegionalPoints } = await resolveAlliancePoints(normalizedEventKey, pricedAlliance);
 
     const regionalPayload = {
-      regionalName: String(event?.name || normalizedEventKey),
+      regionalName: String(event.name || normalizedEventKey),
       week: eventWeek,
       eventKey: normalizedEventKey,
-      eventStartDate: event?.start_date || null,
+      eventStartDate: event.start_date,
       alliance: allianceWithPoints,
       totalRegionalPoints,
       createdAt: new Date()
@@ -287,16 +316,6 @@ export default async function handler(req, res) {
       user: userWithoutPassword
     });
   } catch (error) {
-    if (error.statusCode) {
-      return res.status(error.statusCode).json({ message: error.message });
-    }
-    if (error instanceof SyntaxError) {
-      return res.status(400).json({ message: "JSON inválido no corpo da requisição" });
-    }
-
-    return res.status(500).json({
-      message: "Erro ao salvar/excluir aliança",
-      details: process.env.NODE_ENV === "production" ? undefined : error.message
-    });
+    return sendError(res, error, "Erro ao salvar/excluir aliança");
   }
 }

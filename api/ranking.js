@@ -51,7 +51,9 @@ export default async function handler(req, res) {
       teamNumber: parseSearch(req.query?.teamNumber)
     };
 
-    const users = await User.find({}).select("username profilePhoto frcTeamNumber totalPointsSeason regionals patrimonio patrimonioSeason");
+    // Documento completo (menos a senha): as funções de estado da week leem e gravam
+    // campos como totalPointsCarryover e seasonHistory, que não podem vir parciais.
+    const users = await User.find({}).select("-password");
     const currentSeason = Number(process.env.FRC_SEASON_YEAR) || new Date().getFullYear();
     const currentWeek = getCurrentWeek(currentSeason);
 

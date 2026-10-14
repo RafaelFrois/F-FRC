@@ -6,9 +6,29 @@ if (!globalCache.__mongooseCache) {
   globalCache.__mongooseCache = { conn: null, promise: null };
 }
 
-function classifyMongoError(error) {
+// Host que o driver tentou resolver em "querySrv ENOTFOUND _mongodb._tcp.<host>".
+function extractSrvHost(message) {
+  const match = String(message || "").match(/_mongodb\._tcp\.([^\s]+)/i);
+  return match ? match[1] : null;
+}
+
+export function classifyMongoError(error) {
   const rawMessage = String(error?.message || "");
   const normalizedMessage = rawMessage.toLowerCase();
+
+  if (
+    error?.name === "MongoParseError" ||
+    normalizedMessage.includes("unescaped") ||
+    normalizedMessage.includes("invalid scheme") ||
+    normalizedMessage.includes("cannot have port")
+  ) {
+    return {
+      code: "MONGO_URI_INVALID",
+      httpStatus: 500,
+      message: "MONGO_URI mal formada no servidor.",
+      suggestion: "Codifique caracteres especiais da senha (ex.: @ → %40, : → %3A, / → %2F, # → %23) e remova aspas ou espaços do valor."
+    };
+  }
 
   if (normalizedMessage.includes("mongo_uri não definida") || normalizedMessage.includes("mongo_uri")) {
     return {
@@ -48,13 +68,23 @@ function classifyMongoError(error) {
   if (
     normalizedMessage.includes("querysrv") ||
     normalizedMessage.includes("enotfound") ||
-    normalizedMessage.includes("srv")
+    normalizedMessage.includes("eai_again")
   ) {
+    const host = extractSrvHost(rawMessage);
+    // Um "@" na senha sem codificar faz o driver tratar o resto da senha como host.
+    if (host && !host.toLowerCase().endsWith(".mongodb.net")) {
+      return {
+        code: "MONGO_URI_INVALID",
+        httpStatus: 500,
+        message: "MONGO_URI mal formada no servidor.",
+        suggestion: "O host lido não é um cluster do Atlas: a senha provavelmente tem '@' sem codificar (use %40)."
+      };
+    }
     return {
       code: "MONGO_DNS_ERROR",
       httpStatus: 503,
       message: "Falha de resolução DNS do cluster MongoDB.",
-      suggestion: "Confirme o host do cluster no MONGO_URI e a disponibilidade do cluster Atlas."
+      suggestion: "Confirme o host do cluster no MONGO_URI (Atlas > Connect > Drivers) e se o cluster não foi excluído."
     };
   }
 
@@ -93,8 +123,17 @@ export default async function connectMongo() {
 
   const cache = globalCache.__mongooseCache;
 
-  if (cache.conn && mongoose.connection.readyState === 1) {
+  const readyState = mongoose.connection.readyState;
+  if (cache.conn && readyState === 1) {
     return cache.conn;
+  }
+
+  // Em instâncias serverless reaproveitadas, a conexão pode ter caído depois de
+  // estabelecida. Com bufferCommands=false, reaproveitar a promise antiga faria a
+  // próxima consulta falhar na hora; então descartamos e reconectamos.
+  if (cache.promise && (readyState === 0 || readyState === 3)) {
+    cache.promise = null;
+    cache.conn = null;
   }
 
   if (!cache.promise) {

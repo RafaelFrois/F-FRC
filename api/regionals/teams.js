@@ -9,6 +9,7 @@ import {
   recalculateTeamPriceForWeek
 } from "../../src/DataBase/services/marketSnapshot.service.js";
 import { methodNotAllowed, setCors, handleOptions } from "../../lib/server/http.js";
+import { DEFAULT_TEAM_PRICE } from "../../lib/server/alliance.js";
 
 function getWeekNumberFromDate(dateInput, seasonYear) {
   const eventDate = new Date(dateInput);
@@ -147,7 +148,7 @@ export default async function handler(req, res) {
       return {
         ...base,
         nickname: String(base?.nickname || base?.name || `Team ${teamNumber}`),
-        price: snapshot?.price ?? 5
+        price: snapshot?.price ?? DEFAULT_TEAM_PRICE
       };
     });
 
