@@ -185,3 +185,38 @@ describe("salvar aliança", () => {
     assert.equal(res.statusCode, 401);
   });
 });
+
+describe("histórico entre weeks", () => {
+  test("alianças de weeks passadas ficam salvas e o custo volta ao patrimônio", async () => {
+    await save("2026tsta", [101, 102, 103], 101);
+    // Simula que a week do regional já passou
+    await User.updateOne({ username: "jogador" }, { $set: { "regionals.0.week": 1 } });
+    // Pontuação processada da equipe capitã (fixture): 20 × 1,5 = 30
+    const { default: Score } = await import("../src/DataBase/models/score.js");
+    await Score.deleteMany({});
+    await Score.create({ team_key: "frc101", event_key: "2026tsta", totalPoints: 20 });
+
+    const res = await invoke(me, { cookie });
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.user.regionals.length, 1);
+    assert.equal(res.body.user.patrimonio, 300);
+    assert.equal(res.body.user.totalPointsSeason, 30);
+
+    const stored = await User.findOne({ username: "jogador" }).lean();
+    assert.ok(stored.regionals[0].patrimonySettledAt);
+    assert.equal(stored.patrimonio, 300);
+  });
+
+  test("ranking não apaga alianças nem o carryover de contas antigas", async () => {
+    const { default: ranking } = await import("../api/ranking.js");
+    await save("2026tsta", [101, 102, 103], 101);
+    await User.updateOne({ username: "jogador" }, { $set: { totalPointsCarryover: 100, weekStateNumber: 1 } });
+
+    const res = await invoke(ranking, { cookie });
+    assert.equal(res.statusCode, 200);
+    const stored = await User.findOne({ username: "jogador" }).lean();
+    assert.equal(stored.regionals.length, 1);
+    assert.equal(stored.totalPointsCarryover, 100);
+    assert.equal(res.body.currentUser.totalPointsSeason, 100 + stored.regionals[0].totalRegionalPoints);
+  });
+});

@@ -605,6 +605,10 @@ export default function Dashboard() {
     ? user.username.split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase()
     : 'RF';
 
+  // As alianças de weeks anteriores ficam no histórico; os cartões mostram só a week atual.
+  const displayWeek = Number(user?.currentWeek ?? currentWeek);
+  const weekRegionals = (user?.regionals || []).filter((regional) => Number(regional?.week) === displayWeek);
+
   const handleChooseTeam = () => {
     // redirect to regional chooser
     navigate('/choose-regional');
@@ -700,21 +704,21 @@ export default function Dashboard() {
             <Grid2 style={{marginTop:12}}>
               {[0, 1, 2, 3].map((index) => (
                 <div key={index}>
-                  {user?.regionals && user.regionals.length > index ? (
+                  {weekRegionals.length > index ? (
                     <AllianceCard 
-                      teams={user.regionals[index].alliance.map(a => ({ 
+                      teams={weekRegionals[index].alliance.map(a => ({ 
                         teamNumber: a.teamNumber,
                         nickname: a.nickname,
                         isCaptain: a.isCaptain,
                         points: Number(a?.points || 0)
                       }))}
-                      totalScore={user.regionals[index].totalRegionalPoints || selectedAlliance.totalScore}
-                      regionName={user.regionals[index].regionalName}
-                      eventStartDate={user.regionals[index].eventStartDate || user.regionals[index].event_start_date}
-                      totalPrice={(user.regionals[index].alliance || []).reduce((sum, entry) => {
+                      totalScore={weekRegionals[index].totalRegionalPoints || selectedAlliance.totalScore}
+                      regionName={weekRegionals[index].regionalName}
+                      eventStartDate={weekRegionals[index].eventStartDate || weekRegionals[index].event_start_date}
+                      totalPrice={(weekRegionals[index].alliance || []).reduce((sum, entry) => {
                         return sum + Number(entry?.marketValue || 0);
                       }, 0)}
-                      eventKey={user.regionals[index].eventKey}
+                      eventKey={weekRegionals[index].eventKey}
                       isSelected={true}
                       onDelete={handleDeleteAlliance}
                     />
