@@ -17,6 +17,7 @@ export async function startTestDatabase() {
   process.env.MONGO_URI = url.toString();
   process.env.JWT_SECRET = "test-secret-only-for-automated-tests";
   process.env.NODE_ENV = "test";
+  process.env.TBA_KEY = "test-key-not-real";
   return process.env.MONGO_URI;
 }
 

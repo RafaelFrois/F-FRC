@@ -207,7 +207,7 @@ function ChooseAlliance() {
           navigate('/dashboard');
           return;
         }
-        throw new Error(data.error || 'Erro ao salvar aliança');
+        throw new Error(data.message || data.error || 'Erro ao salvar aliança');
       }
       
       alert('Aliança salva com sucesso!');
